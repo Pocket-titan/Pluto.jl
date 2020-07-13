@@ -34,9 +34,6 @@ function change_remote_cellinput!(notebook, cell, newcode; initiator::Union{Init
         cell.code = newcode
         cell.parsedcode = nothing
     end
-
-    # TODO: feedback to user about File IO
-    save_notebook(notebook)
     
     putnotebookupdates!(notebook, clientupdate_cell_input(notebook, cell, initiator=initiator))
 end
@@ -115,7 +112,14 @@ responses[:changecell] = (body, notebook::Notebook, cell::Cell; initiator::Union
 
     change_remote_cellinput!(notebook, cell, newcode, initiator=initiator)
     putnotebookupdates!(notebook, clientupdate_cell_running(notebook, cell, initiator=initiator))
-    run_reactive_async!(notebook, cell)
+    runtask = run_reactive_async!(notebook, cell)
+    
+    # wait for the reactive run to finish, then save the notebook
+    # we wait async, to make sure that the web server remains responsive
+    @async begin
+        wait(runtask)
+        save_notebook(notebook) # this might be "too late", but it will save the latest version of `notebook` anyways
+    end
 end
 
 responses[:foldcell] = (body, notebook::Notebook, cell::Cell; initiator::Union{Initiator,Missing}=missing) -> begin
@@ -142,6 +146,7 @@ end
 
 responses[:setinput] = (body, notebook::Notebook, cell::Cell; initiator::Union{Initiator,Missing}=missing) -> begin
     change_remote_cellinput!(notebook, cell, body["code"], initiator=initiator)
+    save_notebook(notebook)
 end
 
 responses[:getoutput] = (body, notebook::Notebook, cell::Cell; initiator::Union{Initiator,Missing}=missing) -> begin
