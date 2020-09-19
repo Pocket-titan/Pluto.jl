@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { initMonaco, liftOff } from "./MonacoEditor/julia_monaco";
-import { createLanguageClient } from "./MonacoEditor/languageclient";
-import { listen } from "vscode-ws-jsonrpc";
 import { useWebsocket } from "../ts/hooks";
 import { DocumentEvent } from "../ts/utils";
 import CellView from "./Cell/index";
@@ -25,17 +23,29 @@ const Notebook = () => {
   const [cells, setCells] = useState(test_cells);
   const socket = useWebsocket(document.location.hostname, 3004);
   // // Start the language client
-  // const language_socket = useWebsocket(document.location.hostname, 3003, '/julia');
-  //
+  // const language_socket = useWebsocket(
+  //   document.location.hostname,
+  //   3003,
+  //   "/julia"
+  // );
+
   // useEffect(() => {
-  //   listen({
-  //     webSocket: language_socket as WebSocket,
-  //     onConnection: (connection) => {
-  //       const languageClient = createLanguageClient(connection);
-  //       const disposable = languageClient.start();
-  //       connection.onClose(() => disposable.dispose());
-  //     },
-  //   });
+  //   let init_languageclient = async () => {
+  //     const { createLanguageClient } = await import(
+  //       "./MonacoEditor/languageclient"
+  //     );
+  //     const { listen } = await import("vscode-ws-jsonrpc");
+  //     listen({
+  //       webSocket: language_socket as WebSocket,
+  //       onConnection: (connection) => {
+  //         const languageClient = createLanguageClient(connection);
+  //         const disposable = languageClient.start();
+  //         connection.onClose(() => disposable.dispose());
+  //       },
+  //     });
+  //   };
+
+  //   init_languageclient();
   // }, []);
 
   return (
