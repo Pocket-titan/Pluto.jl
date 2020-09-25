@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { initMonaco, liftOff } from "./MonacoEditor/julia_monaco";
-import { useWebsocket } from "../ts/hooks";
 import { DocumentEvent } from "../ts/utils";
 import CellView from "./Cell/index";
 import { Cell } from "../types";
@@ -21,7 +20,7 @@ const test_cells: Cell[] = [create_cell("let aaa = 6;")];
 
 const Notebook = () => {
   const [cells, setCells] = useState(test_cells);
-  const socket = useWebsocket(document.location.hostname, 3004);
+  // const socket = useWebsocket("localhost:3004");
   // // Start the language client
   // const language_socket = useWebsocket(
   //   document.location.hostname,

@@ -46,19 +46,23 @@ end
 
 function http_router_for(session::ServerSession)
     router = HTTP.Router()
-    
+
     function create_serve_onefile(path)
         return request::HTTP.Request -> asset_response(normpath(path))
     end
-    
+
     HTTP.@register(router, "GET", "/", create_serve_onefile(project_relative_path("frontend", "index.html")))
     HTTP.@register(router, "GET", "/edit", create_serve_onefile(project_relative_path("frontend", "editor.html")))
-    
+
     HTTP.@register(router, "GET", "/ping", r -> HTTP.Response(200, "OK!"))
-    HTTP.@register(router, "GET", "/websocket_url_please", r -> HTTP.Response(200, string(session.secret)))
+    HTTP.@register(router, "GET", "/websocket_url_please", request -> begin
+        response = HTTP.Response(200, string(session.secret))
+        push!(response.headers, "Access-Control-Allow-Origin" => "*")
+        return response
+    end)
     HTTP.@register(router, "GET", "/possible_binder_token_please", r -> HTTP.Response(200, session.binder_token === nothing ? "" : session.binder_token))
     HTTP.@register(router, "GET", "/favicon.ico", create_serve_onefile(project_relative_path("frontend", "img", "favicon.ico")))
-    
+
     function try_launch_notebook_response(action::Function, path_or_url::AbstractString; title="", advice="", home_url="./")
         try
             nb = action(session, path_or_url)
@@ -76,10 +80,10 @@ function http_router_for(session::ServerSession)
         return notebook_redirect_response(SessionActions.new(session))
     end
     HTTP.@register(router, "GET", "/new", serve_newfile)
-    
+
 
     function serve_openfile(req::HTTP.Request)
-        uri = HTTP.URI(req.target)        
+        uri = HTTP.URI(req.target)
         try
             query = HTTP.queryparams(uri)
 
@@ -106,21 +110,21 @@ function http_router_for(session::ServerSession)
     end
 
     HTTP.@register(router, "GET", "/open", serve_openfile)
-    
+
     function serve_sample(req::HTTP.Request)
         uri = HTTP.URI(req.target)
         sample_path = HTTP.URIs.unescapeuri(split(uri.path, "sample/")[2])
         sample_path_without_dotjl = "sample " * sample_path[1:end - 3]
-        
+
         path = numbered_until_new(joinpath(tempdir(), sample_path_without_dotjl))
         readwrite(project_relative_path("sample", sample_path), path)
-        
+
         return try_launch_notebook_response(SessionActions.open, path, home_url="../", title="Failed to load sample", advice="Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!")
     end
     HTTP.@register(router, "GET", "/sample/*", serve_sample)
 
     function serve_notebookfile(req::HTTP.Request)
-        uri = HTTP.URI(req.target)        
+        uri = HTTP.URI(req.target)
         try
             query = HTTP.queryparams(uri)
             id = UUID(query["id"])
@@ -135,10 +139,10 @@ function http_router_for(session::ServerSession)
         end
     end
     HTTP.@register(router, "GET", "/notebookfile", serve_notebookfile)
-    
+
     function serve_asset(req::HTTP.Request)
         reqURI = req.target |> HTTP.URIs.unescapeuri |> HTTP.URI
-        
+
         filepath = project_relative_path("frontend", relpath(reqURI.path, "/"))
         asset_response(filepath)
     end

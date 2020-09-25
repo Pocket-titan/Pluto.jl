@@ -2,7 +2,6 @@ import React from "react";
 import styled from "styled-components";
 import Input from "./Input";
 import Output from "./Output";
-import { Cell } from "../../types";
 
 const StyledCell = styled.div`
   display: flex;
@@ -10,7 +9,7 @@ const StyledCell = styled.div`
   padding-bottom: 1em;
 `;
 
-const _Cell = ({ cell }: { cell: Cell }) => {
+const Cell = ({ cell }: { cell: import("../../types").Cell }) => {
   return (
     <StyledCell>
       <Output value={cell.output} />
@@ -19,4 +18,4 @@ const _Cell = ({ cell }: { cell: Cell }) => {
   );
 };
 
-export default _Cell;
+export default Cell;

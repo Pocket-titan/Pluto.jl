@@ -1,9 +1,8 @@
 import React from "react";
-import { CellInput } from "../../types";
 import MonacoEditor from "../MonacoEditor";
 
-const Input = ({ value = "" }: { value?: CellInput }) => {
-  return <MonacoEditor />;
+const Input = (props: React.ComponentProps<typeof MonacoEditor>) => {
+  return <MonacoEditor {...props} />;
 };
 
 export default Input;

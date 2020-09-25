@@ -1,22 +1,18 @@
-import React from "react";
-import Notebook from "./components/Notebook";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import Notebook from "./pages/Notebook";
+import Welcome from "./pages/Welcome";
 
 const App = () => {
   return (
-    <div style={{ minHeight: "100vh" }}>
-      <nav />
-      <main
-        style={{
-          marginRight: "auto",
-          marginLeft: "auto",
-          width: "100%",
-          display: "flex",
-          maxWidth: "65rem",
-        }}
-      >
+    <Router>
+      <Route path="/" exact>
+        <Welcome />
+      </Route>
+      <Route path="/:id">
         <Notebook />
-      </main>
-    </div>
+      </Route>
+    </Router>
   );
 };
 

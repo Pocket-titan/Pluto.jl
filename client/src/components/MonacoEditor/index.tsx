@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MonacoServices } from "monaco-languageclient";
 import * as monaco from "monaco-editor";
 import { get_actions } from "./actions";
+import { initMonaco, liftOff } from "./julia_monaco";
 
 const LANGUAGE_ID = "julia";
 
@@ -21,37 +22,40 @@ const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   autoClosingQuotes: "always",
   autoClosingOvertype: "always",
   renderWhitespace: "all",
-  fontSize: 15,
+  fontSize: 20,
 };
 
 // hackyyy
 declare global {
   interface Window {
-    __monaco_languageclient_installed: boolean;
+    __monaco_is_loaded: boolean;
+    __monaco_is_languageclient_installed: boolean;
   }
 }
 
-const MonacoEditor = ({ id = "not_so_random_id", value = "" }) => {
+if (!window.__monaco_is_loaded) {
+  initMonaco();
+  liftOff();
+  window.__monaco_is_loaded = true;
+}
+
+const MonacoEditor = ({ id = "not_so_random_id", value = "thing = 50" }) => {
   const containerElement = useRef<HTMLDivElement>();
   const editor = useRef<monaco.editor.IStandaloneCodeEditor>();
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
     editor.current = monaco.editor.create(containerElement.current!, {
-      value: "thing = 50",
+      value,
       ...default_options,
     });
 
-    if (!window.__monaco_languageclient_installed) {
-      MonacoServices.install(editor.current, { rootUri: "/" }); // install the languageclient
-      window.__monaco_languageclient_installed = true;
-    }
+    // if (!window.__monaco_is_languageclient_installed) {
+    // MonacoServices.install(editor.current, { rootUri: "/" }); // install the languageclient
+    // window.__monaco_is_languageclient_installed = true;
+    // }
 
     updateHeight();
-
-    let model = editor.current!.getModel();
-    // // model && monaco.editor.setModelLanguage(model, "julia");
-    console.log("model", model!.uri);
 
     let actions = get_actions(id);
     for (let action of actions) {

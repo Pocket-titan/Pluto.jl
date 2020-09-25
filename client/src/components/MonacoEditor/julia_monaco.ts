@@ -3,7 +3,7 @@ import { loadWASM } from "onigasm";
 import { Registry } from "monaco-textmate";
 import { wireTmGrammars } from "monaco-editor-textmate";
 import night_owl from "monaco-themes/themes/Night Owl.json";
-import one_dark from "../../themes/One Dark.json";
+import one_dark from "./themes/One Dark.json";
 
 /** Setup languages and themes for monaco-editor */
 export const initMonaco = () => {
