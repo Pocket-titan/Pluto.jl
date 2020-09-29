@@ -6,7 +6,14 @@ module.exports = function override(config, env) {
   }
   config.plugins.push(
     new MonacoWebpackPlugin({
-      languages: ["typescript", "javascript", "json", "html", "css"],
+      languages: [
+        "typescript",
+        "javascript",
+        "json",
+        "html",
+        "css",
+        "markdown",
+      ],
     })
   );
   config.resolve.alias.vscode = require.resolve(

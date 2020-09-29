@@ -8,12 +8,13 @@ const LANGUAGE_ID = "julia";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   language: LANGUAGE_ID,
-  theme: "onedark",
+  theme: "horizon",
   minimap: {
     enabled: false,
   },
   scrollbar: {
     vertical: "hidden",
+    alwaysConsumeMouseWheel: false,
   },
   scrollBeyondLastLine: false,
   tabSize: 2,

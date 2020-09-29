@@ -58,7 +58,7 @@ Base.@kwdef mutable struct CompilerOptions
 end # struct CompilerOptions
 
 """
-Collection of all settings that configure a Pluto session. 
+Collection of all settings that configure a Pluto session.
 
 `ServerSession` contains a `Configuration`.
 """
@@ -125,7 +125,7 @@ function from_flat_kwargs(; kwargs...)::Options
                 "Compiler Options:",
                 map(x -> " "^2 * string(x), fieldnames(CompilerOptions))...,
             ], '\n'))
-            
+
             These can be used as keywords arguments to Pluto.run, or to Pluto.from_flat_kwargs to create a Pluto.Options object."""))
         end
     end

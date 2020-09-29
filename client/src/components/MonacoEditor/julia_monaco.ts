@@ -4,17 +4,26 @@ import { Registry } from "monaco-textmate";
 import { wireTmGrammars } from "monaco-editor-textmate";
 import night_owl from "monaco-themes/themes/Night Owl.json";
 import one_dark from "./themes/One Dark.json";
+import horizon from "./themes/Horizon.json";
 
 /** Setup languages and themes for monaco-editor */
 export const initMonaco = () => {
   monaco.editor.defineTheme("nightowl", night_owl as any);
   monaco.editor.defineTheme("onedark", one_dark as any);
+  monaco.editor.defineTheme("horizon", horizon as any);
 
   monaco.languages.register({
     id: "julia",
     extensions: [".jl"],
     aliases: ["jl", "julia", "Julia", "Jl", "JL"],
     mimetypes: ["application/julia"],
+  });
+
+  monaco.languages.register({
+    id: "juliamarkdown",
+    extensions: [".jmd"],
+    aliases: ["jmd", "juliamarkdown", "julia Markdown"],
+    // mimetypes: ["application/julia"],
   });
 
   monaco.languages.setLanguageConfiguration("julia", {
@@ -40,6 +49,15 @@ export const liftOff = async () => {
         };
       }
 
+      if (scopeName === "meta.embedded.inline.markdown") {
+        return {
+          format: "json",
+          content: await (
+            await fetch(`/grammars/juliamarkdown.tmLanguage.json`)
+          ).text(),
+        };
+      }
+
       return {
         format: "json",
         content: await (await fetch(`/grammars/julia.tmLanguage.json`)).text(),
@@ -51,6 +69,7 @@ export const liftOff = async () => {
 
   const grammars = new Map();
   grammars.set("julia", "source.julia");
+  grammars.set("juliamarkdown", "text.html.markdown.julia");
 
   await wireTmGrammars(monaco, registry, grammars);
 };

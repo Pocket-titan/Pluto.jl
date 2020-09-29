@@ -29,10 +29,26 @@ codec.addExtUnpacker(0x16, (buffer) => new Uint32Array(buffer));
 codec.addExtUnpacker(0x17, (buffer) => new Float32Array(buffer));
 codec.addExtUnpacker(0x18, (buffer) => new Float64Array(buffer));
 
-export const pack = (x: any) => {
+const pack = (x: any) => {
   return msgpack.encode(x, { codec: codec });
 };
 
-export const unpack = (x: any) => {
+const unpack = (x: any) => {
   return msgpack.decode(x, { codec: codec });
+};
+
+const MSG_DELIM = new TextEncoder().encode("IUUQ.km jt ejggjdvmu vhi");
+
+export const encode_message = (message: any): ArrayBuffer => {
+  const encoded = pack(message);
+  const to_send = new Uint8Array(encoded.length + MSG_DELIM.length);
+  to_send.set(encoded, 0);
+  to_send.set(MSG_DELIM, encoded.length);
+  return to_send;
+};
+
+export const decode_message = (buffer: ArrayBuffer) => {
+  const buffer_sliced = buffer.slice(0, buffer.byteLength - MSG_DELIM.length);
+  const update = unpack(new Uint8Array(buffer_sliced));
+  return update;
 };

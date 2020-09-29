@@ -3,36 +3,6 @@
   "fileTypes": ["jl"],
   "firstLineMatch": "^#!.*\\bjulia\\s*$",
   "name": "Julia",
-  "injections": {
-    "L:source -string.quoted.other.julia": {
-      "patterns": [
-        {
-          "begin": "(md)(\")",
-          "beginCaptures": {
-            "1": {
-              "name": "support.function.macro.julia"
-            },
-            "2": {
-              "name": "punctuation.definition.string.begin.julia"
-            }
-          },
-          "end": "\"",
-          "name": "embed.markdown.julia",
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.string.end.julia"
-            }
-          },
-          "contentName": "meta.embedded.inline.markdown",
-          "patterns": [
-            {
-              "include": "text.html.markdown"
-            }
-          ]
-        }
-      ]
-    }
-  },
   "patterns": [
     {
       "include": "#operator"
@@ -692,6 +662,36 @@
             }
           },
           "name": "embed.markdown.julia",
+          "contentName": "meta.embedded.inline.markdown",
+          "patterns": [
+            {
+              "include": "text.md"
+            },
+            {
+              "include": "text.html.markdown.julia"
+            },
+            {
+              "include": "#string_dollar_sign_interpolate"
+            }
+          ]
+        },
+        {
+          "begin": "(md)(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "support.function.macro.julia"
+            },
+            "2": {
+              "name": "punctuation.definition.string.begin.julia"
+            }
+          },
+          "end": "\"",
+          "name": "embed.markdown.julia",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.julia"
+            }
+          },
           "contentName": "meta.embedded.inline.markdown",
           "patterns": [
             {
