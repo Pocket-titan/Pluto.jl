@@ -16,6 +16,18 @@ module.exports = function override(config, env) {
       ],
     })
   );
+  config.node = {
+    ...config.node,
+    fs: "empty",
+  };
+  if (!config.module.rules) {
+    config.module.rules = [];
+  }
+  config.module.rules.push({
+    test: /\.wasm$/,
+    loader: "file-loader",
+    type: "javascript/auto", // Disable Webpack's built-in WASM loader
+  });
   config.resolve.alias.vscode = require.resolve(
     "monaco-languageclient/lib/vscode-compatibility"
   );

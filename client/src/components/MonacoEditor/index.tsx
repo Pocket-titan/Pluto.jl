@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { MonacoServices } from "monaco-languageclient";
 import * as monaco from "monaco-editor";
 import { get_actions } from "./actions";
-import { initMonaco, liftOff } from "./julia_monaco";
+import { initMonaco, liftOff, initTreeSitter } from "./julia_monaco";
+// import Parser from "web-tree-sitter";
 
 const LANGUAGE_ID = "julia";
 
@@ -12,8 +13,12 @@ const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   minimap: {
     enabled: false,
   },
+  wordWrap: "on",
+  wrappingStrategy: "advanced",
+  wrappingIndent: "same",
   scrollbar: {
     vertical: "hidden",
+    horizontal: "hidden",
     alwaysConsumeMouseWheel: false,
   },
   scrollBeyondLastLine: false,
@@ -37,15 +42,35 @@ declare global {
 if (!window.__monaco_is_loaded) {
   initMonaco();
   liftOff();
+  // initTreeSitter();
   window.__monaco_is_loaded = true;
 }
 
-const MonacoEditor = ({ id = "not_so_random_id", value = "thing = 50" }) => {
+const MonacoEditor = ({ id = "not_so_random_id", value = "" }) => {
   const containerElement = useRef<HTMLDivElement>();
   const editor = useRef<monaco.editor.IStandaloneCodeEditor>();
   const [height, setHeight] = useState(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    let model = editor.current?.getModel();
+
+    if (!editor.current || !model) {
+      return;
+    }
+
+    if (value !== model!.getValue()) {
+      editor.current.executeEdits("", [
+        {
+          range: model.getFullModelRange(),
+          text: value,
+          forceMoveMarkers: true,
+        },
+      ]);
+      editor.current.pushUndoStop();
+    }
+  }, [value]);
+
+  useLayoutEffect(() => {
     editor.current = monaco.editor.create(containerElement.current!, {
       value,
       ...default_options,

@@ -56,14 +56,14 @@ stringify_keys(x::Any) = x
 
         @test_nowarn send(:move_multiple_cells, Dict(:cells => [c(notebook.cells[3])], :index => 1), Dict(:notebook_id => n))
         @test_nowarn send(:fold_cell, Dict(:folded => true), Dict(:notebook_id => n, :cell_id => c(notebook.cells[1])))
-        @test_nowarn send(:getinput, Dict(), Dict(:notebook_id => n, :cell_id => c(notebook.cells[1])))
+        @test_nowarn send(:get_input, Dict(), Dict(:notebook_id => n, :cell_id => c(notebook.cells[1])))
         @test_nowarn send(:get_output, Dict(), Dict(:notebook_id => n, :cell_id => c(notebook.cells[1])))
         @test_nowarn send(:get_all_cells, Dict(), Dict(:notebook_id => n))
         @test_nowarn send(:get_all_notebooks, Dict(), Dict(:notebook_id => n))
         @test_nowarn send(:get_all_notebooks, Dict(), Dict())
 
         @test_nowarn send(:move_notebook_file, Dict(:path => tempname()), Dict(:notebook_id => n))
-        
+
         # TODO: we need to wait for all above command to finish before we can do this:
         # send(:shutdown_notebook, Dict(:keep_in_session => false), Dict(:notebook_id => n))
     end

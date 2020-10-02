@@ -113,6 +113,9 @@ const create_ws_connection = (address, { on_message, on_socket_close }, timeout_
         }, timeout_ms)
 
         const send_encoded = (message) => {
+            if (message.type !== "ping") {
+                console.log("🎉: message", message.type, message)
+            }
             const encoded = pack(message)
             const to_send = new Uint8Array(encoded.length + MSG_DELIM.length)
             to_send.set(encoded, 0)
@@ -217,6 +220,9 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
     const sent_requests = {}
 
     const handle_update = (update) => {
+        if (update.type !== "pong") {
+            console.log("🎉: update", update.type, update)
+        }
         const by_me = "initiator_id" in update && update.initiator_id == client_id
         const request_id = update.request_id
 

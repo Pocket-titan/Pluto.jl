@@ -40,6 +40,7 @@ end
 
 function notebook_redirect_response(notebook; home_url="./")
     response = HTTP.Response(302, "")
+    push!(response.headers, "Access-Control-Allow-Origin" => "*")
     push!(response.headers, "Location" => home_url * "edit?id=" * string(notebook.notebook_id))
     return response
 end

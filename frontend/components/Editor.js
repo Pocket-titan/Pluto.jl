@@ -156,6 +156,7 @@ export class Editor extends Component {
 
         // these are update message that are _not_ a response to a `send(*, *, {create_promise: true})`
         const on_update = (update, by_me) => {
+            console.log("update", update)
             if (update.notebook_id == null) {
                 switch (update.type) {
                     case "notebook_list":
@@ -284,7 +285,7 @@ export class Editor extends Component {
                             const inputs_promise = Promise.all(
                                 this.state.notebook.cells.map((cell_data) => {
                                     return this.client.send(
-                                        "getinput",
+                                        "get_input",
                                         {},
                                         {
                                             notebook_id: this.state.notebook.notebook_id,
@@ -639,7 +640,7 @@ export class Editor extends Component {
                 // I hope we can find a better solution for this later - Dral
                 alert(
                     `Shortcuts 🎹
-    
+
     Shift+Enter:   run cell
     ${ctrl_or_cmd_name}+Enter:   run cell and add cell below
     Delete or Backspace:   delete empty cell
@@ -649,7 +650,7 @@ export class Editor extends Component {
 
     ${ctrl_or_cmd_name}+Q:   interrupt notebook
     ${ctrl_or_cmd_name}+S:   submit all changes
-    
+
     The notebook file saves every time you run`
                 )
                 e.preventDefault()

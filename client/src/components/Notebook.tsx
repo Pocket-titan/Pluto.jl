@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { initMonaco, liftOff } from "./MonacoEditor/julia_monaco";
 import { DocumentEvent } from "../ts/utils";
-import CellView from "./Cell/index";
+import CellView from "./Cell";
 import { Cell } from "../types";
 
 initMonaco();
@@ -61,7 +61,7 @@ const Notebook = () => {
         }}
       />
       {cells.map((cell) => (
-        <CellView key={cell.id} cell={cell} />
+        <CellView key={cell.id} cell={cell as any} />
       ))}
     </main>
   );

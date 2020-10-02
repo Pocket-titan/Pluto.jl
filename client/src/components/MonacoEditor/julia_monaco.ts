@@ -73,3 +73,22 @@ export const liftOff = async () => {
 
   await wireTmGrammars(monaco, registry, grammars);
 };
+
+/** Had some fun with this, prolly not going to implement my own highlighting tho */
+export const initTreeSitter = async () => {
+  const treeSitterWasmUrl = "tree-sitter.wasm";
+  const realFetch = window.fetch;
+  window.fetch = function () {
+    if (arguments[0].endsWith("/tree-sitter.wasm"))
+      arguments[0] = treeSitterWasmUrl;
+    return realFetch.apply(window, arguments as any);
+  };
+
+  const Parser = (await import("web-tree-sitter")).default;
+  await Parser.init();
+  const parser = new Parser();
+  const language = await Parser.Language.load("tree-sitter-julia.wasm");
+  parser.setLanguage(language);
+  const tree = parser.parse("x = 5;");
+  console.log(tree.rootNode.toString());
+};
