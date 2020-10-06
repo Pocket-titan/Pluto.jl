@@ -13,9 +13,6 @@ const App = () => {
         <Route path="/edit">
           <Notebook />
         </Route>
-        {/* <Route path="/:id">
-          <Notebook />
-        </Route> */}
       </Switch>
     </Router>
   );

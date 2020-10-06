@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useSocket, useListener, send, Notebook } from "../ts/pluto";
+import { useListener, send } from "../ts/pluto";
+import type { Notebook } from "../ts/types";
 
 const Welcome = () => {
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
@@ -46,12 +47,10 @@ const Welcome = () => {
       </a>
       <h3 style={{ marginBottom: 0 }}>Active notebooks:</h3>
       <ul>
-        {notebooks.map((notebook) => {
+        {notebooks.map(({ notebook_id, shortpath }) => {
           return (
-            <li>
-              <a href={`/edit?id=${notebook.notebook_id}`}>
-                {notebook.shortpath}
-              </a>
+            <li key={notebook_id}>
+              <a href={`/edit?id=${notebook_id}`}>{shortpath}</a>
             </li>
           );
         })}

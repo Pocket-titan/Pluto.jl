@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { MonacoServices } from "monaco-languageclient";
 import * as monaco from "monaco-editor";
-import { get_actions } from "./actions";
 import { initMonaco, liftOff, initTreeSitter } from "./julia_monaco";
+import { KeyCode, KeyMod } from "monaco-editor";
+import { send } from "../../ts/pluto";
+import type { Id } from "../../ts/types";
 // import Parser from "web-tree-sitter";
 
-const LANGUAGE_ID = "julia";
-
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
-  language: LANGUAGE_ID,
+  language: "julia",
   theme: "horizon",
   minimap: {
     enabled: false,
@@ -28,7 +28,7 @@ const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   autoClosingQuotes: "always",
   autoClosingOvertype: "always",
   renderWhitespace: "all",
-  fontSize: 20,
+  fontSize: 16,
 };
 
 // hackyyy
@@ -46,7 +46,15 @@ if (!window.__monaco_is_loaded) {
   window.__monaco_is_loaded = true;
 }
 
-const MonacoEditor = ({ id = "not_so_random_id", value = "" }) => {
+const MonacoEditor = ({
+  notebook_id,
+  cell_id,
+  value = "",
+}: {
+  notebook_id: Id;
+  cell_id: Id;
+  value?: string;
+}) => {
   const containerElement = useRef<HTMLDivElement>();
   const editor = useRef<monaco.editor.IStandaloneCodeEditor>();
   const [height, setHeight] = useState(0);
@@ -83,7 +91,24 @@ const MonacoEditor = ({ id = "not_so_random_id", value = "" }) => {
 
     updateHeight();
 
-    let actions = get_actions(id);
+    const actions: monaco.editor.IActionDescriptor[] = [
+      {
+        id: "run-cell",
+        label: "Run cell",
+        keybindings: [KeyMod.Shift | KeyCode.Enter],
+        run: (editor) => {
+          console.log("ran action on editor with id:", cell_id, "!");
+          send("change_cell", {
+            notebook_id,
+            cell_id,
+            body: {
+              code: editor.getModel()!.getValue(),
+            },
+          });
+        },
+      },
+    ];
+
     for (let action of actions) {
       editor.current.addAction(action);
     }
@@ -99,11 +124,10 @@ const MonacoEditor = ({ id = "not_so_random_id", value = "" }) => {
   }, []);
 
   const updateHeight = () => {
-    if (!editor.current) {
+    let editorElement = editor.current?.getDomNode();
+    if (!editor.current || !editorElement) {
       return;
     }
-
-    let editorElement = editor.current.getDomNode()!;
 
     const lineHeight = editor.current.getOption(
       monaco.editor.EditorOption.lineHeight
