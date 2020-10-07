@@ -1,21 +1,27 @@
 import React from "react";
 import MonacoEditor from "../MonacoEditor";
-import type { CellInput, Id } from "../../ts/types";
+import type { Cell, Id } from "../../ts/types";
 
 const Input = ({
-  input: { code, folded } = {
-    code: "",
-    folded: false,
+  cell: {
+    cell_id,
+    input: { code, folded } = {
+      code: "",
+      folded: false,
+    },
   },
-  cell_id,
   notebook_id,
 }: {
-  input?: CellInput;
-  cell_id: Id;
+  cell: Cell;
   notebook_id: Id;
 }) => {
   return (
-    <MonacoEditor value={code} cell_id={cell_id} notebook_id={notebook_id} />
+    <MonacoEditor
+      value={code}
+      cell_id={cell_id}
+      notebook_id={notebook_id}
+      folded={folded}
+    />
   );
 };
 

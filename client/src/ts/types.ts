@@ -21,6 +21,9 @@ const mimeTypes = [
   "video/webm",
   "video/x-msvideo",
   "video/mpeg",
+  // Special pluto mimes
+  "application/vnd.pluto.tree+xml",
+  "application/vnd.pluto.stacktrace+json",
 ] as const;
 
 type MimeType = typeof mimeTypes[number];
@@ -216,6 +219,7 @@ type ResponseMap = typeof responseMap &
 
 export type {
   Id,
+  MimeType,
   Cell,
   CellInput,
   CellOutput,

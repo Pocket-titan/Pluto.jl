@@ -165,7 +165,7 @@ class Socket {
 
 const useSocket = create<{
   socket: Socket;
-}>((get, set) => ({
+}>((set, get) => ({
   socket: new Socket(),
 }));
 
@@ -174,7 +174,9 @@ const send = async <T extends MessageType>(
   message: Partial<
     Exclude<Message<T>, "type" | "request_id" | "client_id">
   > = {}
-) => {
+): Promise<
+  T extends keyof typeof responseMap ? Update<ResponseMap[T]> : void
+> => {
   const socket = useSocket.getState().socket;
   return socket.send(message_type, message);
 };

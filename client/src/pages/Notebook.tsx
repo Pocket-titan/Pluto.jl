@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import CellView from "../components/Cell";
+import _ from "lodash";
 import produce from "immer";
-import type { Cell } from "../ts/types";
+import create, { State, StateCreator } from "zustand";
+import type { Id, Cell } from "../ts/types";
 import { useListener, send } from "../ts/pluto";
+
+// Jesus
+const immer = <T extends State>(
+  config: StateCreator<T, (fn: (draft: T) => void) => void>
+): StateCreator<T> => (set, get, api) =>
+  config((fn) => set(produce(fn) as (state: T) => T), get, api);
 
 const useNotebookId = () => {
   let notebook_id = new URLSearchParams(useLocation().search).get("id");
@@ -15,9 +23,59 @@ const useNotebookId = () => {
   return notebook_id;
 };
 
+type DeepPartial<T> = {
+  [P in keyof T]?: DeepPartial<T[P]>;
+};
+
+export const useNotebook = create<{
+  cells: Cell[];
+  addCell: (cell: Cell, index: number) => void;
+  deleteCell: (cell_id: Id) => void;
+  changeCells: (cells: DeepPartial<Cell>[]) => void;
+  setCells: (cells: Cell[]) => void;
+}>(
+  immer((set, get) => ({
+    cells: [],
+    addCell: (cell, index) => {
+      set(({ cells }) => {
+        cells.splice(index, 0, cell);
+      });
+    },
+    deleteCell: (cell_id) => {
+      set(({ cells }) => {
+        let index = cells.findIndex((cell) => cell.cell_id === cell_id);
+
+        if (index !== -1) {
+          cells.splice(index, 1);
+        }
+      });
+    },
+    changeCells: (new_cells) => {
+      set(({ cells }) => {
+        new_cells.forEach((new_cell) => {
+          let index = cells.findIndex(
+            (cell) => cell.cell_id === new_cell.cell_id
+          );
+
+          if (index === -1) {
+            return;
+          }
+
+          _.merge(cells[index], new_cell);
+        });
+      });
+    },
+    setCells: (new_cells) => {
+      set(() => ({
+        cells: new_cells,
+      }));
+    },
+  }))
+);
+
 const Notebook = () => {
   const notebook_id = useNotebookId();
-  const [cells, setCells] = useState<Cell[]>([]);
+  const { cells, setCells, changeCells, addCell, deleteCell } = useNotebook();
 
   useEffect(() => {
     let init = async () => {
@@ -34,20 +92,12 @@ const Notebook = () => {
           })
         )
       ).then((inputs) => {
-        setCells(
-          produce((draftCells: Cell[]) => {
-            inputs.forEach((input) => {
-              let cell_id = input.cell_id;
-              let index = draftCells.findIndex(
-                (cell) => cell.cell_id === cell_id
-              );
-
-              if (index === -1) {
-                return;
-              }
-
-              draftCells[index].input = input.message;
-            });
+        changeCells(
+          inputs.map(({ cell_id, message: input }) => {
+            return {
+              cell_id,
+              input,
+            };
           })
         );
       });
@@ -60,26 +110,12 @@ const Notebook = () => {
           })
         )
       ).then((outputs) => {
-        setCells(
-          produce((draftCells: Cell[]) => {
-            outputs.forEach((output) => {
-              let cell_id = output.cell_id;
-              let index = draftCells.findIndex(
-                (cell) => cell.cell_id === cell_id
-              );
-
-              if (index === -1) {
-                return;
-              }
-
-              // Watch the difference between input & output!
-              // A `cell_output` event also has data for on the cell itself, instead of
-              // just for the `output` key (whereas `cell_input` only modifies `input`).
-              draftCells[index] = {
-                ...draftCells[index],
-                ...output.message,
-              };
-            });
+        changeCells(
+          outputs.map(({ cell_id, message: { output } }) => {
+            return {
+              cell_id,
+              output,
+            };
           })
         );
       });
@@ -88,67 +124,52 @@ const Notebook = () => {
     init();
   }, []);
 
-  useListener("cell_input", (update) => {
-    let cell_id = update.cell_id;
-
-    setCells(
-      produce((draftCells: Cell[]) => {
-        let index = draftCells.findIndex((cell) => cell.cell_id === cell_id);
-
-        if (index === -1) {
-          return;
-        }
-
-        draftCells[index].input = update.message;
-      })
-    );
-  });
-
-  useListener("cell_output", (update) => {
-    let cell_id = update.cell_id;
-
-    setCells(
-      produce((draftCells: Cell[]) => {
-        let index = draftCells.findIndex((cell) => cell.cell_id === cell_id);
-
-        if (index === -1) {
-          return;
-        }
-
-        draftCells[index].output = update.message.output;
-      })
-    );
-  });
-
-  useListener("cell_added", (update) => {
-    let { index } = update.message;
-    let cell = {
-      cell_id: update.cell_id,
-      queued: false,
-      errored: false,
-      running: false,
-      output: {
-        body: "",
+  useListener("cell_input", ({ cell_id, message: input }) => {
+    changeCells([
+      {
+        cell_id,
+        input,
       },
-    };
+    ]);
+  });
 
-    setCells(
-      produce((draftCells: Cell[]) => {
-        draftCells.splice(index, 0, cell);
-      })
+  useListener("cell_output", ({ cell_id, message: { output } }) => {
+    changeCells([
+      {
+        cell_id,
+        output,
+      },
+    ]);
+  });
+
+  useListener("cell_added", ({ cell_id, message: { index } }) => {
+    addCell(
+      {
+        cell_id,
+        queued: false,
+        errored: false,
+        running: false,
+        output: {
+          body: "",
+        },
+      },
+      index
     );
   });
 
   useListener("cell_deleted", ({ cell_id }) => {
-    setCells(
-      produce((draftCells: Cell[]) => {
-        let index = draftCells.findIndex((cell) => cell.cell_id === cell_id);
+    deleteCell(cell_id);
+  });
 
-        if (index !== -1) {
-          draftCells.splice(index, 1);
-        }
-      })
-    );
+  useListener("cell_folded", ({ cell_id, message: { folded } }) => {
+    changeCells([
+      {
+        cell_id,
+        input: {
+          folded,
+        },
+      },
+    ]);
   });
 
   return (
@@ -164,11 +185,12 @@ const Notebook = () => {
         }}
       >
         <main style={{ flex: "1 1 0%" }}>
-          {cells.map((cell) => {
+          {cells.map((cell, index) => {
             return (
               <CellView
                 key={cell.cell_id}
                 cell={cell}
+                index={index}
                 notebook_id={notebook_id}
               />
             );
