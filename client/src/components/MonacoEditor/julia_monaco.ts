@@ -2,15 +2,18 @@ import * as monaco from "monaco-editor";
 import { loadWASM } from "onigasm";
 import { Registry } from "monaco-textmate";
 import { wireTmGrammars } from "monaco-editor-textmate";
-import night_owl from "monaco-themes/themes/Night Owl.json";
-import one_dark from "./themes/One Dark.json";
-import horizon from "./themes/Horizon.json";
+// import night_owl from "monaco-themes/themes/Night Owl.json";
+// import one_dark from "./themes/One Dark.json";
+// import horizon from "./themes/Horizon.json";
+// import atom_one_dark from "./textmate/themes/atom-one-dark-theme";
+// import atom_one_dark from "./textmate/themes/HorizonTest.json";
 
 /** Setup languages and themes for monaco-editor */
 export const initMonaco = () => {
-  monaco.editor.defineTheme("nightowl", night_owl as any);
-  monaco.editor.defineTheme("onedark", one_dark as any);
-  monaco.editor.defineTheme("horizon", horizon as any);
+  // monaco.editor.defineTheme("nightowl", night_owl as any);
+  // monaco.editor.defineTheme("onedark", one_dark as any);
+  // monaco.editor.defineTheme("horizon", horizon as any);
+  // monaco.editor.defineTheme("atom-one-dark", atom_one_dark as any);
 
   monaco.languages.register({
     id: "julia",

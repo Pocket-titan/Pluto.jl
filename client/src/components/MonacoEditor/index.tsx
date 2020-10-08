@@ -2,12 +2,14 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { MonacoServices } from "monaco-languageclient";
 import * as monaco from "monaco-editor";
 import { initMonaco } from "./textmate";
+// import { initMonaco, liftOff } from "./julia_monaco";
 import { KeyCode, KeyMod } from "monaco-editor";
 import { send } from "../../ts/pluto";
 import type { Id } from "../../ts/types";
 import { SimpleLanguageInfoProvider } from "./textmate/providers";
 import { registerProviders } from "./providers";
 // import Parser from "web-tree-sitter";
+import atom_one_dark from "./themes/One Dark.json";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   // theme doesn't actually matter i think since we manually set this in
@@ -53,6 +55,7 @@ declare global {
 
 let provider: SimpleLanguageInfoProvider;
 if (!window.__monaco_is_loaded) {
+  monaco.editor.defineTheme("atom-one-dark", atom_one_dark as any);
   initMonaco("julia").then((languageProvider) => {
     provider = languageProvider;
   });

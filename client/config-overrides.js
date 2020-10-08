@@ -1,5 +1,5 @@
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
-const { override, addExternalBabelPlugin } = require("customize-cra");
+const { override } = require("customize-cra");
 
 function myOverrides(config, env) {
   if (!config.plugins) {
@@ -41,10 +41,4 @@ function myOverrides(config, env) {
   return config;
 }
 
-module.exports = override(
-  myOverrides,
-  addExternalBabelPlugin([
-    "@babel/plugin-transform-react-jsx",
-    { throwIfNamespace: false },
-  ])
-);
+module.exports = override(myOverrides);

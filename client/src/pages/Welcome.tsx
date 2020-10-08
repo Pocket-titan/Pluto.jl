@@ -29,11 +29,13 @@ const Welcome = () => {
     >
       <h1>Welcome!</h1>
       <a
+        href="/new"
         style={{
           cursor: "pointer",
           textDecorationLine: "underline",
         }}
-        onClick={async () => {
+        onClick={async (event) => {
+          event.preventDefault();
           const { protocol, hostname } = document.location;
           let url = `${protocol}//${hostname}:${1234}/new`;
           let res = await fetch(url);

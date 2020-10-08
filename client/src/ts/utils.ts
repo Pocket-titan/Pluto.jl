@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect } from "react";
 
+export const delay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 export const DocumentEvent = <K extends keyof DocumentEventMap>({
   handler,
   name,
