@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { useLocation } from "react-router-dom";
 import CellView from "../components/Cell";
 import _ from "lodash";
@@ -35,6 +36,7 @@ export const useNotebook = create<{
   deleteCell: (cell_id: Id) => void;
   changeCells: (cells: DeepPartial<Cell>[]) => void;
   setCells: (cells: Cell[]) => void;
+  moveCells: (cells_ids: Cell["cell_id"][], index: number) => void;
 }>(
   immer((set, get) => ({
     cells: [],
@@ -72,12 +74,69 @@ export const useNotebook = create<{
         cells: new_cells,
       }));
     },
+    moveCells: (cell_ids, index) => {
+      let { cells } = get();
+
+      let result = cell_ids
+        .map((cell_id) => cells.findIndex((cell) => cell.cell_id === cell_id))
+        .filter((index) => index !== -1)
+        .reduce((cells, startIndex, delta) => {
+          let endIndex = index + delta;
+          return reorder(cells, startIndex, endIndex);
+        }, cells);
+
+      set(() => ({
+        cells: result,
+      }));
+    },
   }))
 );
 
+const reorder = <T extends unknown>(
+  list: T[],
+  startIndex: number,
+  endIndex: number
+) => {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+
+  return result;
+};
+
+const grid = 8;
+
+const getItemStyle = (
+  isDragging: boolean,
+  draggableStyle: React.CSSProperties
+): React.CSSProperties => ({
+  // some basic styles to make the items look a bit nicer
+  userSelect: "none",
+  padding: grid * 2,
+  margin: `0 0 ${grid}px 0`,
+
+  // change background colour if dragging
+  background: isDragging ? "lightgreen" : "grey",
+
+  // styles we need to apply on draggables
+  ...draggableStyle,
+});
+
+const getListStyle = (isDraggingOver: boolean): React.CSSProperties => ({
+  background: isDraggingOver ? "lightblue" : "lightgrey",
+  padding: grid,
+});
+
 const Notebook = () => {
   const notebook_id = useNotebookId();
-  const { cells, setCells, changeCells, addCell, deleteCell } = useNotebook();
+  const {
+    cells,
+    setCells,
+    changeCells,
+    addCell,
+    deleteCell,
+    moveCells,
+  } = useNotebook();
 
   useEffect(() => {
     let init = async () => {
@@ -174,6 +233,10 @@ const Notebook = () => {
     ]);
   });
 
+  useListener("cells_moved", ({ message: { cells, index } }) => {
+    moveCells(cells, index);
+  });
+
   return (
     <div
       style={{
@@ -194,16 +257,66 @@ const Notebook = () => {
         }}
       >
         <main style={{ flex: "1 1 0%" }}>
-          {cells.map((cell, index) => {
-            return (
-              <CellView
-                key={cell.cell_id}
-                cell={cell}
-                index={index}
-                notebook_id={notebook_id}
-              />
-            );
-          })}
+          <DragDropContext
+            onDragEnd={(result) => {
+              if (!result.destination) {
+                return;
+              }
+
+              const newCells = reorder(
+                cells,
+                result.source.index,
+                result.destination.index
+              );
+
+              send("move_multiple_cells", {
+                notebook_id,
+                body: {
+                  cells: [cells[result.source.index].cell_id],
+                  index: result.destination.index,
+                },
+              });
+
+              setCells(newCells);
+            }}
+          >
+            <Droppable droppableId="droppable">
+              {(provided, snapshot) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  style={getListStyle(snapshot.isDraggingOver)}
+                >
+                  {cells.map((cell, index) => (
+                    <Draggable
+                      key={cell.cell_id}
+                      draggableId={cell.cell_id}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          style={getItemStyle(
+                            snapshot.isDragging,
+                            provided.draggableProps?.style || {}
+                          )}
+                        >
+                          <CellView
+                            key={cell.cell_id}
+                            cell={cell}
+                            index={index}
+                            notebook_id={notebook_id}
+                            dragHandleProps={provided.dragHandleProps}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </main>
       </main>
       <Footer />

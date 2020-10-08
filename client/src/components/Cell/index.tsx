@@ -5,6 +5,7 @@ import type { Id } from "../../ts/types";
 import { send } from "../../ts/pluto";
 import styled from "styled-components/macro";
 import { Add, Eye, EyeOff, Trash } from "@styled-icons/ionicons-outline";
+import { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
 
 const Container = styled.div`
   position: relative;
@@ -82,14 +83,16 @@ const Cell = ({
   cell,
   index,
   notebook_id,
+  dragHandleProps,
 }: {
   cell: import("../../ts/types").Cell;
   index: number;
   notebook_id: Id;
+  dragHandleProps?: DraggableProvidedDragHandleProps;
 }) => {
   return (
     <Container>
-      <Shoulder title="Drag to move cell" />
+      <Shoulder title="Drag to move cell" {...(dragHandleProps || {})} />
       <Output cell={cell} />
       <Input cell={cell} notebook_id={notebook_id} />
       <AddCell

@@ -97,11 +97,21 @@ class Socket {
 
       console.log("🎉 Update", update.type, update);
 
-      if (update.request_id && this.requests.has(update.request_id)) {
-        let request = this.requests.get(update.request_id)!;
-        request(update);
-        this.requests.delete(update.request_id);
-        return;
+      // i can't believe i've done this
+      let it_was_me = update?.initiator_id === this.client_id;
+
+      console.log(
+        "update.request_id && it_was_me",
+        update.request_id && it_was_me
+      );
+
+      if (update.request_id && it_was_me) {
+        let request = this.requests.get(update.request_id);
+        if (request) {
+          request(update);
+          this.requests.delete(update.request_id);
+          return;
+        }
       }
 
       this.listeners.get(update.type)?.forEach((listener) => {

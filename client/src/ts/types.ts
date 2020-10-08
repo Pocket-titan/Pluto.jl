@@ -112,6 +112,13 @@ type Messages = {
       cells: Cell["cell_id"][];
     };
   };
+  move_multiple_cells: {
+    notebook_id: Id;
+    body: {
+      cells: Cell["cell_id"][];
+      index: number;
+    };
+  };
   completepath: {
     body: {
       query: string | "nothinginparticular";
@@ -189,6 +196,13 @@ type Updates = {
     cell_id: Id;
     message: {
       folded: boolean;
+    };
+  };
+  cells_moved: {
+    notebook_id: Id;
+    message: {
+      cells: Cell["cell_id"][];
+      index: number;
     };
   };
 };
