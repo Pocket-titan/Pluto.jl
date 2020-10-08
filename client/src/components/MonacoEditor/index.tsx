@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { MonacoServices } from "monaco-languageclient";
 import * as monaco from "monaco-editor";
 import { initMonaco } from "./textmate";
@@ -6,10 +6,13 @@ import { KeyCode, KeyMod } from "monaco-editor";
 import { send } from "../../ts/pluto";
 import type { Id } from "../../ts/types";
 import { SimpleLanguageInfoProvider } from "./textmate/providers";
+import { registerProviders } from "./providers";
 // import Parser from "web-tree-sitter";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
-  theme: "vs-dark",
+  // theme doesn't actually matter i think since we manually set this in
+  // ./textmate/index.ts
+  theme: "atom-one-dark",
   minimap: {
     enabled: false,
   },
@@ -31,6 +34,13 @@ const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   fontSize: 17,
   renderLineHighlightOnlyWhenFocus: true,
   renderIndentGuides: false,
+  overviewRulerLanes: 0,
+  lineNumbersMinChars: 3,
+  padding: {
+    top: 0,
+    bottom: 0,
+  },
+  smoothScrolling: true,
 };
 
 // hackyyy
@@ -46,6 +56,7 @@ if (!window.__monaco_is_loaded) {
   initMonaco("julia").then((languageProvider) => {
     provider = languageProvider;
   });
+  registerProviders();
   window.__monaco_is_loaded = true;
 }
 
@@ -60,8 +71,8 @@ const MonacoEditor = ({
   value?: string;
   folded?: boolean;
 }) => {
-  const containerElement = useRef<HTMLDivElement>();
   const editor = useRef<monaco.editor.IStandaloneCodeEditor>();
+  const containerElement = useRef<HTMLDivElement>();
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
@@ -146,7 +157,6 @@ const MonacoEditor = ({
     );
     const lineCount = editor.current.getModel()?.getLineCount() || 1;
     const range = editor.current.getModel()?.getFullModelRange();
-    console.log("range", range);
     const newHeight = lineCount * lineHeight;
 
     if (height !== newHeight) {

@@ -1,4 +1,5 @@
 import React from "react";
+import styled from "styled-components/macro";
 import type { Cell, MimeType } from "../../ts/types";
 
 const ErrorMessage = ({
@@ -8,12 +9,7 @@ const ErrorMessage = ({
   msg?: string;
   stacktrace?: string;
 }) => {
-  return (
-    <div>
-      {msg}
-      {stacktrace}
-    </div>
-  );
+  return <div>{msg}</div>;
 };
 
 const Body = ({ mime, body }: { mime: MimeType; body: string }) => {
@@ -56,6 +52,27 @@ const RawHTMLContainer = ({ body }: { body: string }) => (
   <div dangerouslySetInnerHTML={{ __html: body }} />
 );
 
+const StyledOutput = styled.div`
+  position: relative;
+  display: flex;
+  color: hsl(0, 0%, 70%);
+  background-color: hsl(223, 15%, 12%);
+  padding: 0em 1em 0em 1em;
+  font-size: 16;
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 0.25em 0px;
+  }
+
+  pre,
+  p {
+    margin: 0.5em 0px;
+  }
+`;
+
 const Output = ({
   cell: {
     output: { body, mime } = {
@@ -68,16 +85,9 @@ const Output = ({
   cell: Cell;
 }) => {
   return (
-    <div
-      style={{
-        display: "flex",
-        color: "hsl(0, 0%, 70%)",
-        backgroundColor: "hsl(244, 9%, 21%)",
-        padding: "0em 1em 0em 1em",
-      }}
-    >
+    <StyledOutput>
       <Body body={body} mime={mime!} />
-    </div>
+    </StyledOutput>
   );
 };
 

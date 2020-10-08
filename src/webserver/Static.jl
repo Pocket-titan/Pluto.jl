@@ -80,7 +80,10 @@ function http_router_for(session::ServerSession)
     function serve_newfile(req::HTTP.Request)
         return notebook_redirect_response(SessionActions.new(session))
     end
-    HTTP.@register(router, "GET", "/new", serve_newfile)
+    HTTP.@register(router, "GET", "/new", request -> begin
+        response = serve_newfile(request)
+        response
+    end)
 
 
     function serve_openfile(req::HTTP.Request)

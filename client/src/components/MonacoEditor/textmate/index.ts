@@ -1,16 +1,5 @@
 import type { LanguageId } from "./register";
 import type { ScopeName, TextMateGrammar, ScopeNameInfo } from "./providers";
-
-// Recall we are using MonacoWebpackPlugin. According to the
-// monaco-editor-webpack-plugin docs, we must use:
-//
-// import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-//
-// instead of
-//
-// import * as monaco from 'monaco-editor';
-//
-// because we are shipping only a subset of the languages.
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import {
   createOnigScanner,
@@ -20,7 +9,9 @@ import {
 import { SimpleLanguageInfoProvider } from "./providers";
 import { registerLanguages } from "./register";
 import { rehydrateRegexps } from "./configuration";
-import VsCodeDarkTheme from "./vs-dark-plus-theme";
+// import VsCodeDarkTheme from "./themes/vs-dark-plus-theme";
+import AtomOneDarkTheme from "../themes/One Dark.json";
+import AtomOneDarkTextmateTheme from "./themes/atom-one-dark-theme";
 
 interface DemoScopeNameInfo extends ScopeNameInfo {
   path: string;
@@ -42,6 +33,8 @@ export async function initMonaco(language: LanguageId) {
   //
   // You likely also want to add an entry in getSampleCodeForLanguage() and
   // change the call to initMonaco() above to pass your LanguageId.
+  monaco.editor.defineTheme("atom-one-dark", AtomOneDarkTheme as any);
+
   const languages: monaco.languages.ILanguageExtensionPoint[] = [
     {
       id: "julia",
@@ -91,7 +84,7 @@ export async function initMonaco(language: LanguageId) {
     fetchGrammar,
     configurations: languages.map((language) => language.id),
     fetchConfiguration,
-    theme: VsCodeDarkTheme,
+    theme: AtomOneDarkTextmateTheme,
     onigLib,
     monaco,
   });
@@ -108,9 +101,7 @@ export async function initMonaco(language: LanguageId) {
 
 // Taken from https://github.com/microsoft/vscode/blob/829230a5a83768a3494ebbc61144e7cde9105c73/src/vs/workbench/services/textMate/browser/textMateService.ts#L33-L40
 async function loadVSCodeOnigurumWASM(): Promise<Response | ArrayBuffer> {
-  const response = await fetch(
-    "/node_modules/vscode-oniguruma/release/onig.wasm"
-  );
+  const response = await fetch("/onig.wasm");
   const contentType = response.headers.get("content-type");
   if (contentType === "application/wasm") {
     return response;

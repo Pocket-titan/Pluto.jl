@@ -6,6 +6,8 @@ import produce from "immer";
 import create, { State, StateCreator } from "zustand";
 import type { Id, Cell } from "../ts/types";
 import { useListener, send } from "../ts/pluto";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
 // Jesus
 const immer = <T extends State>(
@@ -173,10 +175,17 @@ const Notebook = () => {
   });
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      <nav />
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+      }}
+    >
+      <Header />
       <main
         style={{
+          flex: 1,
           marginRight: "auto",
           marginLeft: "auto",
           width: "100%",
@@ -197,6 +206,7 @@ const Notebook = () => {
           })}
         </main>
       </main>
+      <Footer />
     </div>
   );
 };
