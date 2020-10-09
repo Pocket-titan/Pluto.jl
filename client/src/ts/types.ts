@@ -124,6 +124,18 @@ type Messages = {
       query: string | "nothinginparticular";
     };
   };
+  docs: {
+    notebook_id: Id;
+    body: {
+      query: string;
+    };
+  };
+  complete: {
+    notebook_id: Id;
+    body: {
+      query: string;
+    };
+  };
 };
 
 type MessageType = keyof Messages;
@@ -205,6 +217,21 @@ type Updates = {
       index: number;
     };
   };
+  doc_result: {
+    notebook_id: Id;
+    message: {
+      status: "⌛" | "👍";
+      doc: string;
+    };
+  };
+  completion_result: {
+    notebook_id: Id;
+    message: {
+      start: number;
+      stop: number;
+      results: string[];
+    };
+  };
 };
 
 type UpdateType = keyof Updates;
@@ -224,6 +251,8 @@ const responseMap = {
   get_all_cells: "cell_list",
   get_input: "cell_input",
   get_output: "cell_output",
+  docs: "doc_result",
+  complete: "completion_result",
 } as const;
 
 type ResponseMap = typeof responseMap &

@@ -196,4 +196,9 @@ responses[:set_bond] = (session::ServerSession, body, notebook::Notebook; initia
         update_save_run!(session, notebook, to_reeval; deletion_hook=custom_deletion_hook, run_async=true, save=false)
     end
 
+responses[:language_server] = (session::ServerSession, body, notebook::Notebook; initiator::Union{Initiator,Missing}=missing) -> let
+    client = session.connected_clients[initiator.client_id]
+    putclientupdates!(session, initiator, update)
+end
+
 end

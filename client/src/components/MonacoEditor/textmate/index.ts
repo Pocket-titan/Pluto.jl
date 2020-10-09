@@ -33,8 +33,6 @@ export async function initMonaco(language: LanguageId) {
   //
   // You likely also want to add an entry in getSampleCodeForLanguage() and
   // change the call to initMonaco() above to pass your LanguageId.
-  monaco.editor.defineTheme("atom-one-dark", AtomOneDarkTheme as any);
-
   const languages: monaco.languages.ILanguageExtensionPoint[] = [
     {
       id: "julia",

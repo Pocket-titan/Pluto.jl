@@ -44,7 +44,7 @@ const normalizeUrlProvider = (urlProvider: UrlProvider): UrlProvider => {
   }
 };
 
-const createWebsocket = (
+export const createWebsocket = (
   urlProvider: UrlProvider,
   options: {
     maxReconnectionDelay?: number;
@@ -99,11 +99,6 @@ class Socket {
 
       // i can't believe i've done this
       let it_was_me = update?.initiator_id === this.client_id;
-
-      console.log(
-        "update.request_id && it_was_me",
-        update.request_id && it_was_me
-      );
 
       if (update.request_id && it_was_me) {
         let request = this.requests.get(update.request_id);

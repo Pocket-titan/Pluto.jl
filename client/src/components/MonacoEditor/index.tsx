@@ -10,6 +10,7 @@ import { SimpleLanguageInfoProvider } from "./textmate/providers";
 import { registerProviders } from "./api/providers";
 // import Parser from "web-tree-sitter";
 import atom_one_dark from "./themes/One Dark.json";
+import night_owl from "monaco-themes/themes/Night Owl.json";
 import { createDecoration } from "./api/decorations";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
@@ -57,6 +58,7 @@ declare global {
 let provider: SimpleLanguageInfoProvider;
 if (!window.__monaco_is_loaded) {
   monaco.editor.defineTheme("atom-one-dark", atom_one_dark as any);
+  monaco.editor.defineTheme("night-owl", night_owl as any);
   initMonaco("julia").then((languageProvider) => {
     provider = languageProvider;
   });
@@ -109,6 +111,7 @@ const MonacoEditor = ({
       ...default_options,
     });
 
+    // This makes our token colors work again b/c of textmate stuff
     provider?.injectCSS();
 
     // if (!window.__monaco_is_languageclient_installed) {
