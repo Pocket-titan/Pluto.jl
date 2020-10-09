@@ -104,29 +104,6 @@ const reorder = <T extends unknown>(
   return result;
 };
 
-const grid = 8;
-
-const getItemStyle = (
-  isDragging: boolean,
-  draggableStyle: React.CSSProperties
-): React.CSSProperties => ({
-  // some basic styles to make the items look a bit nicer
-  userSelect: "none",
-  padding: grid * 2,
-  margin: `0 0 ${grid}px 0`,
-
-  // change background colour if dragging
-  background: isDragging ? "lightgreen" : "grey",
-
-  // styles we need to apply on draggables
-  ...draggableStyle,
-});
-
-const getListStyle = (isDraggingOver: boolean): React.CSSProperties => ({
-  background: isDraggingOver ? "lightblue" : "lightgrey",
-  padding: grid,
-});
-
 const Notebook = () => {
   const notebook_id = useNotebookId();
   const {
@@ -256,68 +233,48 @@ const Notebook = () => {
           maxWidth: "80rem",
         }}
       >
-        <main style={{ flex: "1 1 0%" }}>
-          <DragDropContext
-            onDragEnd={(result) => {
-              if (!result.destination) {
-                return;
-              }
+        <DragDropContext
+          onDragEnd={(result) => {
+            if (!result.destination) {
+              return;
+            }
 
-              const newCells = reorder(
-                cells,
-                result.source.index,
-                result.destination.index
-              );
+            const newCells = reorder(
+              cells,
+              result.source.index,
+              result.destination.index
+            );
 
-              send("move_multiple_cells", {
-                notebook_id,
-                body: {
-                  cells: [cells[result.source.index].cell_id],
-                  index: result.destination.index,
-                },
-              });
+            send("move_multiple_cells", {
+              notebook_id,
+              body: {
+                cells: [cells[result.source.index].cell_id],
+                index: result.destination.index,
+              },
+            });
 
-              setCells(newCells);
-            }}
-          >
-            <Droppable droppableId="droppable">
-              {(provided, snapshot) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  style={getListStyle(snapshot.isDraggingOver)}
-                >
-                  {cells.map((cell, index) => (
-                    <Draggable
-                      key={cell.cell_id}
-                      draggableId={cell.cell_id}
-                      index={index}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          style={getItemStyle(
-                            snapshot.isDragging,
-                            provided.draggableProps?.style || {}
-                          )}
-                        >
-                          <CellView
-                            key={cell.cell_id}
-                            cell={cell}
-                            index={index}
-                            notebook_id={notebook_id}
-                            dragHandleProps={provided.dragHandleProps}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </main>
+            setCells(newCells);
+          }}
+        >
+          <Droppable droppableId="droppable">
+            {(provided, snapshot) => (
+              <main
+                style={{ flex: "1 1 0%" }}
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+              >
+                {cells.map((cell, index) => (
+                  <CellView
+                    key={cell.cell_id}
+                    cell={cell}
+                    index={index}
+                    notebook_id={notebook_id}
+                  />
+                ))}
+              </main>
+            )}
+          </Droppable>
+        </DragDropContext>
       </main>
       <Footer />
     </div>

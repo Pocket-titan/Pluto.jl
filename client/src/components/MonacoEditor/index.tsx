@@ -7,9 +7,10 @@ import { KeyCode, KeyMod } from "monaco-editor";
 import { send } from "../../ts/pluto";
 import type { Id } from "../../ts/types";
 import { SimpleLanguageInfoProvider } from "./textmate/providers";
-import { registerProviders } from "./providers";
+import { registerProviders } from "./api/providers";
 // import Parser from "web-tree-sitter";
 import atom_one_dark from "./themes/One Dark.json";
+import { createDecoration } from "./api/decorations";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   // theme doesn't actually matter i think since we manually set this in
@@ -130,6 +131,14 @@ const MonacoEditor = ({
               code: editor.getModel()!.getValue(),
             },
           });
+        },
+      },
+      {
+        id: "test",
+        label: "Test",
+        run: (editor) => {
+          let decoration = createDecoration();
+          editor.deltaDecorations([], [decoration]);
         },
       },
     ];
