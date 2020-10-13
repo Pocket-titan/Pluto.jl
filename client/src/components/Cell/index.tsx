@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import React, { useCallback } from "react";
+import * as monaco from "monaco-editor";
 import Input from "./Input";
 import Output from "./Output";
-import type { Id } from "../../ts/types";
 import { send } from "../../ts/pluto";
 import styled, { css } from "styled-components/macro";
 import { Add, Eye, EyeOff, Trash } from "@styled-icons/ionicons-outline";
-import {
-  Draggable,
-  DraggableProvided,
-  DraggableStateSnapshot,
-} from "react-beautiful-dnd";
+import { DraggableProvided, DraggableStateSnapshot } from "react-beautiful-dnd";
+import { getNotebookId } from "../../ts/utils";
+import { useNotebook } from "../../pages/Notebook";
 
 const TRAFFICLIGHT_WIDTH = 6;
 
-const TrafficLight = styled.div<States>`
+// prettier-ignore
+// Otherwise our css doesn't highlight :/
+const TrafficLight = styled.div<{ errored: boolean; queued: boolean; running: boolean; }>`
   height: 100%;
   position: absolute;
   z-index: 99;
@@ -115,19 +115,21 @@ const Container = styled.div<{ selected: boolean }>`
   box-shadow: 3px 3px 9px hsla(0, 0%, 0%, 0.25);
   min-height: 23px; /* TODO: maybe do editor.getOption() instead of hardcoding */
 
-  ${({ selected }) =>
+  ${({ selected, theme }) =>
     selected &&
     css`
-      &:after,
-      ${TrafficLight}:after {
+      &:after {
         position: absolute;
         content: "";
         top: 0;
-        left: 0;
-        width: 100%;
+        left: -${TRAFFICLIGHT_WIDTH}px;
+        width: calc(100% + ${TRAFFICLIGHT_WIDTH}px);
         height: 100%;
         opacity: 1;
-        background: rgba(20, 40, 140, 0.2);
+        border-radius: 4px;
+        background: ${theme.isDark
+          ? "hsla(207, 84%, 70%, 0.2)"
+          : "rgba(20, 40, 140, 0.2)"};
       }
     `}
 `;
@@ -218,28 +220,50 @@ const DeleteCell = styled(Button)`
   top: 0;
 `;
 
-type States = {
-  errored: boolean;
-  queued: boolean;
-  running: boolean;
-};
-
 const Cell = ({
   cell,
   index,
-  notebook_id,
   provided: { innerRef, draggableProps, dragHandleProps },
   snapshot: { isDragging, isDropAnimating },
-}: React.ComponentProps<typeof DraggableCell> & {
+}: {
+  cell: import("../../ts/types").Cell;
+  index: number;
   provided: DraggableProvided;
   snapshot: DraggableStateSnapshot;
 }) => {
+  const notebook_id = getNotebookId();
+  const selected = useNotebook(
+    useCallback((state) => state.selected_cells.includes(cell.cell_id), [
+      cell.cell_id,
+    ])
+  );
+  // const selected = selected_cells.includes(cell.cell_id);
+
+  // const badge =
+  //   isDragging && selected_cells.length > 0 ? selected_cells.length : null;
+  const badge = null;
+
+  const addCell = async (index: number) => {
+    let new_cell = await send("add_cell", {
+      notebook_id,
+      body: {
+        index: index,
+      },
+    });
+
+    const unsub = useNotebook.subscribe(
+      (editor: monaco.editor.IStandaloneCodeEditor | null) => {
+        if (editor) {
+          editor.focus();
+          unsub();
+        }
+      },
+      (state) => state.editorRefs[new_cell.cell_id]
+    );
+  };
+
   return (
-    <Container
-      ref={innerRef}
-      {...draggableProps}
-      selected={Boolean(cell.selected)}
-    >
+    <Container ref={innerRef} {...draggableProps} selected={selected}>
       <pluto-cell id={cell.cell_id}>
         <Shoulder
           title="Drag to move cell"
@@ -259,12 +283,7 @@ const Cell = ({
           title="Add cell"
           where="before"
           onClick={(event) => {
-            send("add_cell", {
-              notebook_id,
-              body: {
-                index: index + 0,
-              },
-            });
+            addCell(index + 0);
           }}
         >
           <Add size={22} />
@@ -273,12 +292,7 @@ const Cell = ({
           title="Add cell"
           where="after"
           onClick={(event) => {
-            send("add_cell", {
-              notebook_id,
-              body: {
-                index: index + 1,
-              },
-            });
+            addCell(index + 1);
           }}
         >
           <Add size={22} />
@@ -309,24 +323,26 @@ const Cell = ({
           <Trash size={22} />
         </DeleteCell>
       </pluto-cell>
+      {badge && (
+        <div
+          style={{
+            position: "absolute",
+            left: -TRAFFICLIGHT_WIDTH,
+            top: 0,
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "steelblue",
+            borderRadius: "50%",
+            height: 25,
+            width: 25,
+            textAlign: "center",
+            verticalAlign: "center",
+          }}
+        >
+          {badge}
+        </div>
+      )}
     </Container>
   );
 };
 
-const DraggableCell = (props: {
-  cell: import("../../ts/types").Cell;
-  index: number;
-  notebook_id: Id;
-}) => (
-  <Draggable
-    draggableId={props.cell.cell_id}
-    key={props.cell.cell_id}
-    index={props.index}
-  >
-    {(provided, snapshot) => (
-      <Cell provided={provided} snapshot={snapshot} {...props} />
-    )}
-  </Draggable>
-);
-
-export default DraggableCell;
+export default Cell;

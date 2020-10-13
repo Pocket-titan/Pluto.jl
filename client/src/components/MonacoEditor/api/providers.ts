@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor";
 import { send } from "../../../ts/pluto";
+import { getNotebookId } from "../../../ts/utils";
 import latex_symbols from "./latex_symbols";
 
 const referenceProvider: monaco.languages.ReferenceProvider = {
@@ -66,10 +67,6 @@ const createSuggestion = (): monaco.languages.CompletionItem | void => {
   //   commitCharacters,
   //   command,
   // }
-};
-
-let getNotebookId = (): string => {
-  return new URLSearchParams(window.location.search).get("id")!;
 };
 
 const completionItemProvider: monaco.languages.CompletionItemProvider = {

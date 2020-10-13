@@ -261,6 +261,8 @@ const responseMap = {
   get_output: "cell_output",
   docs: "doc_result",
   complete: "completion_result",
+  add_cell: "cell_added",
+  delete_cell: "cell_deleted",
 } as const;
 
 type ResponseMap = typeof responseMap &

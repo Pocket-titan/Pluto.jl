@@ -72,7 +72,13 @@ type Listener<T extends UpdateType = UpdateType> = (update: Update<T>) => void;
 
 class Socket {
   private listeners = new Map<UpdateType, Set<Listener>>();
-  private requests = new Map<Id, Listener>();
+  private requests = new Map<
+    Id,
+    {
+      resolve: Listener;
+      suppress: boolean;
+    }
+  >();
   public client_id = get_unique_short_id();
   public socket: ReconnectingWebSocket;
 
@@ -103,9 +109,12 @@ class Socket {
       if (update.request_id && it_was_me) {
         let request = this.requests.get(update.request_id);
         if (request) {
-          request(update);
+          request.resolve(update);
           this.requests.delete(update.request_id);
-          return;
+
+          if (request.suppress) {
+            return;
+          }
         }
       }
 
@@ -119,7 +128,11 @@ class Socket {
 
   async send<T extends MessageType>(
     message_type: T,
-    rest: Partial<Exclude<Message<T>, "type" | "request_id" | "client_id">> = {}
+    rest: Partial<
+      Exclude<Message<T>, "type" | "request_id" | "client_id">
+    > = {},
+    // If there is a request waiting, the update won't trigger other listeners if true.
+    suppress: boolean = false
   ) {
     let message = {
       type: message_type,
@@ -137,7 +150,10 @@ class Socket {
     let response = (responseMap as ResponseMap)[message_type];
     return new Promise((resolve) => {
       if (response) {
-        this.requests.set(message.request_id, resolve as any);
+        this.requests.set(message.request_id, {
+          resolve: resolve as any,
+          suppress,
+        });
       } else {
         resolve();
       }
@@ -178,12 +194,13 @@ const send = async <T extends MessageType>(
   message_type: T,
   message: Partial<
     Exclude<Message<T>, "type" | "request_id" | "client_id">
-  > = {}
+  > = {},
+  suppress: boolean = false
 ): Promise<
   T extends keyof typeof responseMap ? Update<ResponseMap[T]> : void
 > => {
   const socket = useSocket.getState().socket;
-  return socket.send(message_type, message);
+  return socket.send(message_type, message, suppress);
 };
 
 const useListener = <T extends UpdateType>(

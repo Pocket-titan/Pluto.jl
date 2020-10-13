@@ -1,20 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { PlayCircle } from "@styled-icons/ionicons-outline";
 import { CloseCircle } from "@styled-icons/ionicons-solid";
-import styled from "styled-components/macro";
 import produce from "immer";
 import _ from "lodash";
 import { useListener, send } from "../ts/pluto";
 import type { Id, RecentNotebook } from "../ts/types";
 import { getRecentNotebooks } from "../ts/utils";
-
-const Link = styled.a`
-  color: hsla(0, 0%, 100%, 0.87);
-
-  &:visited {
-    color: hsla(0, 0%, 100%, 0.87);
-  }
-`;
 
 const Welcome = () => {
   const [notebooks, setNotebooks] = useState<RecentNotebook[]>([]);
@@ -68,11 +59,10 @@ const Welcome = () => {
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "column",
-        color: "hsla(0, 0%, 100%, 0.60)",
       }}
     >
       <h1>Welcome!</h1>
-      <Link
+      <a
         href="/new"
         onClick={async (event) => {
           event.preventDefault();
@@ -86,7 +76,7 @@ const Welcome = () => {
         }}
       >
         Create a new notebook
-      </Link>
+      </a>
       <h3 style={{ marginBottom: 0 }}>Active notebooks:</h3>
       <ul>
         {notebooks.map(({ notebook_id, transitioning, path }) => {
@@ -132,7 +122,7 @@ const Welcome = () => {
                   <PlayCircle size={22} style={{ color: "hsl(0, 0%, 80%)" }} />
                 )}
               </button>
-              <Link href={`/edit?id=${notebook_id}`}>{path}</Link>
+              <a href={`/edit?id=${notebook_id}`}>{path}</a>
             </li>
           );
         })}

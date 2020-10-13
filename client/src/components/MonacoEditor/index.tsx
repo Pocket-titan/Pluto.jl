@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
-import { MonacoServices } from "monaco-languageclient";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as monaco from "monaco-editor";
 import { initMonaco } from "./textmate";
 // import { initMonaco, liftOff } from "./julia_monaco";
@@ -12,10 +11,9 @@ import { registerProviders } from "./api/providers";
 import atom_one_dark from "./themes/One Dark.json";
 import atom_one_light from "./themes/One Light.json";
 import { createDecoration } from "./api/decorations";
-import atomOneDarkTheme from "./textmate/themes/atom-one-dark-theme";
+import { useNotebook } from "../../pages/Notebook";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
-  theme: window.__theme === "dark" ? "atom-one-dark" : "atom-one-light",
   minimap: {
     enabled: false,
   },
@@ -23,17 +21,20 @@ const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
   wrappingStrategy: "advanced",
   wrappingIndent: "same",
   automaticLayout: true,
+  foldingHighlight: false,
   scrollbar: {
     vertical: "hidden",
     horizontal: "hidden",
     alwaysConsumeMouseWheel: false,
   },
+  lineNumbers: "off",
   scrollBeyondLastLine: false,
   tabSize: 2,
   autoIndent: "full",
   autoClosingBrackets: "always",
   autoClosingQuotes: "always",
   autoClosingOvertype: "always",
+  matchBrackets: "near",
   fontSize: 17,
   renderLineHighlightOnlyWhenFocus: true,
   renderIndentGuides: false,
@@ -79,6 +80,9 @@ const MonacoEditor = ({
   folded?: boolean;
 }) => {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor>();
+  const setEditorRef = useNotebook(
+    useCallback((state) => state.setEditorRef, [])
+  );
   const containerElement = useRef<HTMLDivElement>();
   const [height, setHeight] = useState(0);
 
@@ -89,14 +93,16 @@ const MonacoEditor = ({
     }
 
     if (value !== model.getValue()) {
-      editor.current.executeEdits("", [
+      const position = editor.current.getPosition();
+      // Use the "hardcore" way to apply, so we can't Ctrl+Z the initial value :P
+      model.applyEdits([
         {
           range: model.getFullModelRange(),
           text: value,
           forceMoveMarkers: true,
         },
       ]);
-      editor.current.pushUndoStop();
+      editor.current.setPosition(position || new monaco.Position(0, 0));
     }
   }, [value]);
 
@@ -109,18 +115,14 @@ const MonacoEditor = ({
 
     editor.current = monaco.editor.create(containerElement.current!, {
       model,
+      theme: window.__theme === "dark" ? "atom-one-dark" : "atom-one-light",
       ...default_options,
     });
 
+    setEditorRef(cell_id, editor.current);
+
     // This makes our token colors work again b/c of textmate stuff
     provider?.injectCSS();
-
-    // if (!window.__monaco_is_languageclient_installed) {
-    // MonacoServices.install(editor.current, { rootUri: "/" }); // install the languageclient
-    // window.__monaco_is_languageclient_installed = true;
-    // }
-
-    updateHeight();
 
     const actions: monaco.editor.IActionDescriptor[] = [
       {
@@ -151,36 +153,31 @@ const MonacoEditor = ({
       editor.current.addAction(action);
     }
 
-    editor.current.onDidChangeModelDecorations(() => {
-      updateHeight(); // typing
-      requestAnimationFrame(updateHeight); // folding
+    editor.current.onDidContentSizeChange(
+      ({ contentHeight, contentHeightChanged }) => {
+        if (contentHeightChanged) {
+          setHeight(contentHeight);
+          editor.current?.layout();
+        }
+      }
+    );
+
+    editor.current.onDidBlurEditorText(() => {
+      editor.current?.setSelection(new monaco.Range(0, 0, 0, 0));
     });
+
+    const lineHeight = editor.current.getOption(
+      monaco.editor.EditorOption.lineHeight
+    );
+    if (lineHeight > height) {
+      setHeight(lineHeight);
+    }
 
     return () => {
       editor.current?.getModel()?.dispose();
       editor.current?.dispose();
     };
   }, []);
-
-  const updateHeight = () => {
-    let editorElement = editor.current?.getDomNode();
-    if (!editor.current || !editorElement) {
-      return;
-    }
-
-    const lineHeight = editor.current.getOption(
-      monaco.editor.EditorOption.lineHeight
-    );
-    const lineCount = editor.current.getModel()?.getLineCount() || 1;
-    const range = editor.current.getModel()?.getFullModelRange();
-    const newHeight = lineCount * lineHeight;
-
-    if (height !== newHeight) {
-      setHeight(newHeight);
-      editorElement.style.height = `${newHeight}px`;
-      editor.current.layout();
-    }
-  };
 
   return (
     <div

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { pick } from "lodash/fp";
-import type { Id } from "../ts/types";
+import _ from "lodash";
+import { useTheme } from "styled-components/macro";
 import { DocumentEvent } from "../ts/utils";
 import { useNotebook } from "../pages/Notebook";
 
@@ -30,6 +30,23 @@ const intersects = (a: Area, b: Area) => {
   return true;
 };
 
+const in_request_animation_frame = (fn: Function) => {
+  let last_known_arguments: any = null;
+  let ticking = false;
+
+  return (...args: any) => {
+    last_known_arguments = args;
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        fn(...last_known_arguments);
+        ticking = false;
+      });
+
+      ticking = true;
+    }
+  };
+};
+
 type Position = {
   x: number;
   y: number;
@@ -44,6 +61,19 @@ const getSelectedCells = (selection: Area) => {
   let selectedCells = Array.from(document.querySelectorAll("pluto-cell"))
     .filter((cellNode) => {
       let rect = cellNode.getBoundingClientRect();
+
+      let isVisible =
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <=
+          (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <=
+          (window.innerWidth || document.documentElement.clientWidth);
+
+      if (!isVisible) {
+        return false;
+      }
+
       let me: Area = {
         start: {
           x: rect.x,
@@ -63,8 +93,17 @@ const getSelectedCells = (selection: Area) => {
 };
 
 const SelectionArea = () => {
+  const theme = useTheme();
   const [selection, setSelection] = useState<Area>();
-  const { cells, selectCells } = useNotebook(pick(["cells", "selectCells"]));
+  const selectCells = useNotebook((state) => state.selectCells);
+
+  const updateSelection = _.throttle(() => {
+    if (!selection) {
+      return;
+    }
+
+    selectCells(getSelectedCells(selection));
+  }, 100);
 
   return (
     <>
@@ -77,9 +116,7 @@ const SelectionArea = () => {
           );
         }}
         handler={({ pageX: x, pageY: y }) => {
-          if (cells.some((cell) => cell.selected)) {
-            selectCells([]);
-          }
+          selectCells([]);
 
           setSelection({
             start: { x, y },
@@ -124,11 +161,14 @@ const SelectionArea = () => {
         <div
           style={{
             position: "absolute",
+            pointerEvents: "none",
             top: Math.min(selection.start.y, selection.end.y),
             left: Math.min(selection.start.x, selection.end.x),
             width: Math.abs(selection.start.x - selection.end.x),
             height: Math.abs(selection.start.y - selection.end.y),
-            background: "rgba(40, 78, 189, 0.24)",
+            background: theme.isDark
+              ? "hsla(207, 84%, 70%, 0.24)"
+              : "rgba(40, 78, 189, 0.24)",
             zIndex: 10,
           }}
         />

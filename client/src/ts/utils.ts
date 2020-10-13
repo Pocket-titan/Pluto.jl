@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from "react";
-import { RecentNotebook } from "./types";
+import { Id, RecentNotebook } from "./types";
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -70,32 +70,20 @@ export const updateRecentNotebooks = (newPath: string, toDelete?: string) => {
   let newPaths = [newPath].concat(
     paths.filter((path) => path !== newPath && path !== toDelete)
   );
+
   localStorage.setItem(
     "recent notebooks",
     JSON.stringify(newPaths.slice(0, 50))
   );
 };
 
-// export const update_stored_recent_notebooks = (
-//   recent_path,
-//   also_delete = undefined
-// ) => {
-//   const storedString = localStorage.getItem("recent notebooks");
-//   const storedList = !!storedString ? JSON.parse(storedString) : [];
-//   const oldpaths = storedList;
-//   const newpaths = [recent_path].concat(
-//     oldpaths.filter((path) => {
-//       return path != recent_path && path != also_delete;
-//     })
-//   );
-//   localStorage.setItem(
-//     "recent notebooks",
-//     JSON.stringify(newpaths.slice(0, 50))
-//   );
-// };
+export const getNotebookId = (): Id => {
+  let notebook_id = new URLSearchParams(window.location.search).get("id");
 
-// export const get_stored_recent_notebooks = () => {
-//   const storedString = localStorage.getItem("recent notebooks");
-//   const storedList = !!storedString ? JSON.parse(storedString) : [];
-//   return storedList.map((path) => create_empty_notebook(path));
-// };
+  if (!notebook_id) {
+    console.error("Failed to get notebook id");
+    return "";
+  }
+
+  return notebook_id;
+};

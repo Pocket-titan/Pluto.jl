@@ -82,7 +82,9 @@ const Body = ({ mime, body }: { mime: MimeType; body: string }) => {
         </div>
       );
     }
-    case "text/html":
+    case "text/html": {
+      return <RawHTMLContainer body={body} />;
+    }
     case "application/vnd.pluto.tree+xml": {
       return <Jltree body={body} />;
     }

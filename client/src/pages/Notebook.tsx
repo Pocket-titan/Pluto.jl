@@ -1,51 +1,58 @@
 import React, { useEffect } from "react";
-import { DragDropContext, Droppable } from "react-beautiful-dnd";
-import { listen } from "vscode-ws-jsonrpc";
-import { useLocation } from "react-router-dom";
-import CellView from "../components/Cell";
-import _ from "lodash";
+import * as monaco from "monaco-editor";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import create, { State as ZState, StateCreator } from "zustand";
+import shallow from "zustand/shallow";
 import produce from "immer";
-import create, { State, StateCreator } from "zustand";
+import _ from "lodash";
+import { useListener, send, useSocket } from "../ts/pluto";
 import type { Id, Cell } from "../ts/types";
-import { useListener, send, useSocket, createWebsocket } from "../ts/pluto";
+import { getNotebookId } from "../ts/utils";
+import SelectionArea from "../components/SelectionArea";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import SelectionArea from "../components/SelectionArea";
+import CellView from "../components/Cell";
 
 // Jesus
-const immer = <T extends State>(
+const immer = <T extends ZState>(
   config: StateCreator<T, (fn: (draft: T) => void) => void>
 ): StateCreator<T> => (set, get, api) =>
   config((fn) => set(produce(fn) as (state: T) => T), get, api);
-
-const getNotebookId = (): Id => {
-  let notebook_id = new URLSearchParams(window.location.search).get("id");
-
-  if (!notebook_id) {
-    console.error("Failed to get notebook id");
-    return "";
-  }
-
-  return notebook_id;
-};
 
 type DeepPartial<T> = {
   [P in keyof T]?: DeepPartial<T[P]>;
 };
 
-export const useNotebook = create<{
+type State = {
   cells: Cell[];
   notebook_id: Id;
+  selected_cells: Id[];
+  editorRefs: {
+    [id: string]: monaco.editor.IStandaloneCodeEditor;
+  };
+  setEditorRef: (
+    id: Id,
+    editorRef: monaco.editor.IStandaloneCodeEditor
+  ) => void;
   addCell: (cell: Cell, index: number) => void;
   deleteCell: (cell_id: Id) => void;
   changeCells: (cells: DeepPartial<Cell>[]) => void;
   setCells: (cells: Cell[]) => void;
   moveCells: (cell_ids: Id[], index: number) => void;
   selectCells: (cell_ids: Id[]) => void;
-}>(
+};
+
+export const useNotebook = create<State>(
   immer((set, get) => ({
     cells: [],
     notebook_id: getNotebookId(),
+    selected_cells: [],
+    editorRefs: {},
+    setEditorRef: (id, editorRef) => {
+      set(({ editorRefs }) => {
+        editorRefs[id] = editorRef;
+      });
+    },
     addCell: (cell, index) => {
       set(({ cells }) => {
         cells.splice(index, 0, cell);
@@ -96,11 +103,9 @@ export const useNotebook = create<{
       });
     },
     selectCells: (cell_ids) => {
-      set((draft) => {
-        draft.cells.forEach((cell) => {
-          cell.selected = cell_ids.includes(cell.cell_id);
-        });
-      });
+      set(() => ({
+        selected_cells: cell_ids,
+      }));
     },
   }))
 );
@@ -117,6 +122,26 @@ const reorder = <T extends unknown>(
   return result;
 };
 
+const selector = ({
+  cells,
+  notebook_id,
+  setCells,
+  changeCells,
+  addCell,
+  deleteCell,
+  moveCells,
+  selectCells,
+}: State) => ({
+  cells,
+  notebook_id,
+  setCells,
+  changeCells,
+  addCell,
+  deleteCell,
+  moveCells,
+  selectCells,
+});
+
 const Notebook = () => {
   const {
     cells,
@@ -127,7 +152,7 @@ const Notebook = () => {
     deleteCell,
     moveCells,
     selectCells,
-  } = useNotebook();
+  } = useNotebook(selector, shallow);
   const socket = useSocket((state) => state.socket);
 
   useEffect(() => {
@@ -139,10 +164,14 @@ const Notebook = () => {
 
       Promise.all(
         message.cells.map(({ cell_id }) =>
-          send("get_input", {
-            notebook_id: notebook_id,
-            cell_id,
-          })
+          send(
+            "get_input",
+            {
+              notebook_id: notebook_id,
+              cell_id,
+            },
+            true
+          )
         )
       ).then((inputs) => {
         changeCells(
@@ -157,10 +186,14 @@ const Notebook = () => {
 
       Promise.all(
         message.cells.map(({ cell_id }) =>
-          send("get_output", {
-            notebook_id: notebook_id,
-            cell_id,
-          })
+          send(
+            "get_output",
+            {
+              notebook_id: notebook_id,
+              cell_id,
+            },
+            true
+          )
         )
       ).then((outputs) => {
         changeCells(
@@ -291,13 +324,22 @@ const Notebook = () => {
                 ref={provided.innerRef}
               >
                 {cells.map((cell, index) => (
-                  <CellView
+                  <Draggable
+                    draggableId={cell.cell_id}
                     key={cell.cell_id}
-                    cell={cell}
                     index={index}
-                    notebook_id={notebook_id}
-                  />
+                  >
+                    {(provided, snapshot) => (
+                      <CellView
+                        provided={provided}
+                        snapshot={snapshot}
+                        cell={cell}
+                        index={index}
+                      />
+                    )}
+                  </Draggable>
                 ))}
+                {provided.placeholder}
               </main>
             )}
           </Droppable>
