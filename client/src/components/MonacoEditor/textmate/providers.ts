@@ -63,7 +63,8 @@ export interface ScopeNameInfo {
  */
 export class SimpleLanguageInfoProvider {
   private monaco: Monaco;
-  private registry: Registry;
+  // private registry: Registry;
+  public registry: Registry;
   private tokensProviderCache: TokensProviderCache;
 
   constructor(private config: SimpleLanguageInfoProviderConfig) {
@@ -226,11 +227,18 @@ function createStyleElementForColorsCSS(): HTMLStyleElement {
   // We want to ensure that our <style> element appears after Monaco's so that
   // we can override some styles it inserted for the default theme.
   const style = document.createElement("style");
+  style.className = "__crazy_weird_classname";
+
+  const previousStyles = document.getElementsByClassName(
+    "__crazy_weird_classname"
+  );
+  Array.from(previousStyles).forEach((oldStyle) => oldStyle.remove());
 
   // We expect the styles we need to override to be in an element with the class
   // name 'monaco-colors' based on:
   // https://github.com/microsoft/vscode/blob/f78d84606cd16d75549c82c68888de91d8bdec9f/src/vs/editor/standalone/browser/standaloneThemeServiceImpl.ts#L206-L214
   const monacoColors = document.getElementsByClassName("monaco-colors")[0];
+  console.log("monacoColors", monacoColors);
   if (monacoColors) {
     monacoColors.parentElement?.insertBefore(style, monacoColors.nextSibling);
   } else {

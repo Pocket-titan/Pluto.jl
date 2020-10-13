@@ -1,20 +1,40 @@
-import React from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
+import { ThemeProvider } from "styled-components/macro";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import { useTheme } from "./ts/theme";
 import Notebook from "./pages/Notebook";
 import Welcome from "./pages/Welcome";
 
 const App = () => {
+  const { theme, setTheme } = useTheme();
+
+  useLayoutEffect(() => {
+    setTheme(window.__theme);
+    window.__onThemeChange = (newTheme) => {
+      setTheme(newTheme);
+    };
+  }, []);
+
   return (
-    <Router>
-      <Switch>
-        <Route path="/" exact>
-          <Welcome />
-        </Route>
-        <Route path="/edit">
-          <Notebook />
-        </Route>
-      </Switch>
-    </Router>
+    <ThemeProvider theme={{ isDark: theme === "dark" }}>
+      <div
+        style={{
+          backgroundColor: "var(--background-color)",
+          transition: "background-color 250ms ease-in-out",
+        }}
+      >
+        <Router>
+          <Switch>
+            <Route path="/" exact>
+              <Welcome />
+            </Route>
+            <Route path="/edit">
+              <Notebook />
+            </Route>
+          </Switch>
+        </Router>
+      </div>
+    </ThemeProvider>
   );
 };
 

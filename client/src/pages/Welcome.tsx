@@ -1,15 +1,59 @@
 import React, { useEffect, useState } from "react";
+import { PlayCircle } from "@styled-icons/ionicons-outline";
+import { CloseCircle } from "@styled-icons/ionicons-solid";
+import styled from "styled-components/macro";
+import produce from "immer";
+import _ from "lodash";
 import { useListener, send } from "../ts/pluto";
-import type { Notebook } from "../ts/types";
+import type { Id, RecentNotebook } from "../ts/types";
+import { getRecentNotebooks } from "../ts/utils";
+
+const Link = styled.a`
+  color: hsla(0, 0%, 100%, 0.87);
+
+  &:visited {
+    color: hsla(0, 0%, 100%, 0.87);
+  }
+`;
 
 const Welcome = () => {
-  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
+  const [notebooks, setNotebooks] = useState<RecentNotebook[]>([]);
+
+  const setNotebook = (notebook_id: Id, notebook: RecentNotebook) => {
+    setNotebooks(
+      produce(notebooks, (draftNotebooks) => {
+        let index = notebooks.findIndex(
+          (notebook) => notebook.notebook_id === notebook_id
+        );
+
+        if (index === -1) {
+          return;
+        }
+
+        _.merge(draftNotebooks[index], notebook);
+      })
+    );
+  };
 
   useEffect(() => {
     let init = async () => {
       let wave = await send("connect");
-      let notebook_list = await send("get_all_notebooks");
-      setNotebooks(notebook_list.message.notebooks);
+      let {
+        message: { notebooks },
+      } = await send("get_all_notebooks");
+      let runningNotebooks = notebooks.map(({ notebook_id, path }) => ({
+        transitioning: false,
+        notebook_id,
+        path,
+      }));
+      let recentNotebooks = getRecentNotebooks();
+      let combinedNotebooks = _.unionBy(
+        runningNotebooks,
+        recentNotebooks,
+        "path"
+      );
+      console.log("combinedNotebooks", combinedNotebooks);
+      setNotebooks(combinedNotebooks);
     };
 
     init();
@@ -24,16 +68,12 @@ const Welcome = () => {
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "column",
-        color: "white",
+        color: "hsla(0, 0%, 100%, 0.60)",
       }}
     >
       <h1>Welcome!</h1>
-      <a
+      <Link
         href="/new"
-        style={{
-          cursor: "pointer",
-          textDecorationLine: "underline",
-        }}
         onClick={async (event) => {
           event.preventDefault();
           const { protocol, hostname } = document.location;
@@ -46,13 +86,53 @@ const Welcome = () => {
         }}
       >
         Create a new notebook
-      </a>
+      </Link>
       <h3 style={{ marginBottom: 0 }}>Active notebooks:</h3>
       <ul>
-        {notebooks.map(({ notebook_id, shortpath }) => {
+        {notebooks.map(({ notebook_id, transitioning, path }) => {
+          const isRunning = notebook_id !== null;
+
           return (
-            <li key={notebook_id}>
-              <a href={`/edit?id=${notebook_id}`}>{shortpath}</a>
+            <li
+              key={path}
+              style={{
+                listStyle: "none",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <button
+                title={isRunning ? "Shut down notebook" : "Start notebook"}
+                onClick={(event) => {
+                  if (transitioning) {
+                    return;
+                  }
+
+                  if (isRunning) {
+                    send("shutdown_notebook", {
+                      notebook_id: notebook_id!,
+                      body: {
+                        keep_in_session: false,
+                      },
+                    });
+                  } else {
+                  }
+                }}
+                style={{
+                  marginRight: 5,
+                  padding: 0,
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {isRunning ? (
+                  <CloseCircle size={22} style={{ color: "hsl(0, 0%, 60%)" }} />
+                ) : (
+                  <PlayCircle size={22} style={{ color: "hsl(0, 0%, 80%)" }} />
+                )}
+              </button>
+              <Link href={`/edit?id=${notebook_id}`}>{path}</Link>
             </li>
           );
         })}

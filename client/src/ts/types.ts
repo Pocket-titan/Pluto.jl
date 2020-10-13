@@ -45,6 +45,8 @@ type Cell = {
   running?: boolean;
   errored?: boolean;
   runtime?: number;
+  //
+  selected?: boolean;
 };
 
 type CellInput = {
@@ -134,6 +136,12 @@ type Messages = {
     notebook_id: Id;
     body: {
       query: string;
+    };
+  };
+  shutdown_notebook: {
+    notebook_id: Id;
+    body: {
+      keep_in_session: boolean;
     };
   };
 };
@@ -260,6 +268,12 @@ type ResponseMap = typeof responseMap &
     [K in Exclude<MessageType, keyof typeof responseMap>]: null;
   };
 
+type RecentNotebook = {
+  transitioning: boolean; // between running and being shut down
+  notebook_id: string | null; // null means that it is not running
+  path: string;
+};
+
 export type {
   Id,
   MimeType,
@@ -272,6 +286,7 @@ export type {
   Update,
   UpdateType,
   ResponseMap,
+  RecentNotebook,
 };
 
 export { responseMap };

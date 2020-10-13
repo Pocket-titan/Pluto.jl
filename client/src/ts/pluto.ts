@@ -73,8 +73,8 @@ type Listener<T extends UpdateType = UpdateType> = (update: Update<T>) => void;
 class Socket {
   private listeners = new Map<UpdateType, Set<Listener>>();
   private requests = new Map<Id, Listener>();
-  private client_id = get_unique_short_id();
-  private socket: ReconnectingWebSocket;
+  public client_id = get_unique_short_id();
+  public socket: ReconnectingWebSocket;
 
   constructor() {
     let socket = createWebsocket(

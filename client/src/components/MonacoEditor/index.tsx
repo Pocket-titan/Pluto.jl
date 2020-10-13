@@ -10,13 +10,12 @@ import { SimpleLanguageInfoProvider } from "./textmate/providers";
 import { registerProviders } from "./api/providers";
 // import Parser from "web-tree-sitter";
 import atom_one_dark from "./themes/One Dark.json";
-import night_owl from "monaco-themes/themes/Night Owl.json";
+import atom_one_light from "./themes/One Light.json";
 import { createDecoration } from "./api/decorations";
+import atomOneDarkTheme from "./textmate/themes/atom-one-dark-theme";
 
 const default_options: monaco.editor.IStandaloneEditorConstructionOptions = {
-  // theme doesn't actually matter i think since we manually set this in
-  // ./textmate/index.ts
-  theme: "atom-one-dark",
+  theme: window.__theme === "dark" ? "atom-one-dark" : "atom-one-light",
   minimap: {
     enabled: false,
   },
@@ -55,16 +54,18 @@ declare global {
   }
 }
 
+// TODO: right now this is called for *each* MonacoEditor instance...
 let provider: SimpleLanguageInfoProvider;
 if (!window.__monaco_is_loaded) {
   monaco.editor.defineTheme("atom-one-dark", atom_one_dark as any);
-  monaco.editor.defineTheme("night-owl", night_owl as any);
+  monaco.editor.defineTheme("atom-one-light", atom_one_light as any);
   initMonaco("julia").then((languageProvider) => {
     provider = languageProvider;
   });
   registerProviders();
   window.__monaco_is_loaded = true;
 }
+export let getProvider = () => provider;
 
 const MonacoEditor = ({
   notebook_id,

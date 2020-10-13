@@ -10,7 +10,7 @@ import { SimpleLanguageInfoProvider } from "./providers";
 import { registerLanguages } from "./register";
 import { rehydrateRegexps } from "./configuration";
 // import VsCodeDarkTheme from "./themes/vs-dark-plus-theme";
-import AtomOneDarkTheme from "../themes/One Dark.json";
+import AtomOneLightTextmateTheme from "./themes/atom-one-light";
 import AtomOneDarkTextmateTheme from "./themes/atom-one-dark-theme";
 
 interface DemoScopeNameInfo extends ScopeNameInfo {
@@ -82,7 +82,10 @@ export async function initMonaco(language: LanguageId) {
     fetchGrammar,
     configurations: languages.map((language) => language.id),
     fetchConfiguration,
-    theme: AtomOneDarkTextmateTheme,
+    theme:
+      window.__theme === "dark"
+        ? AtomOneDarkTextmateTheme
+        : AtomOneLightTextmateTheme,
     onigLib,
     monaco,
   });

@@ -35,7 +35,7 @@ responses[:completepath] = (session::ServerSession, body, notebook = nothing; in
     end
     stop_utf8 = nextind(path, pos) # advance one unicode char, js uses exclusive upper bound
 
-    msg = UpdateMessage(:completion_result, 
+    msg = UpdateMessage(:completion_result,
         Dict(
             :start => start_utf8 - 1, # 1-based index (julia) to 0-based index (js)
             :stop => stop_utf8 - 1, # idem
@@ -63,7 +63,7 @@ responses[:complete] = (session::ServerSession, body, notebook::Notebook; initia
     start_utf8 = loc.start
     stop_utf8 = nextind(query, pos) # advance one unicode char, js uses exclusive upper bound
 
-    msg = UpdateMessage(:completion_result, 
+    msg = UpdateMessage(:completion_result,
         Dict(
             :start => start_utf8 - 1, # 1-based index (julia) to 0-based index (js)
             :stop => stop_utf8 - 1, # idem
@@ -79,7 +79,8 @@ responses[:docs] = (session::ServerSession, body, notebook::Notebook; initiator:
     doc_html, status = if haskey(Docs.keywords, query |> Symbol)
         # available in Base, no need to ask worker
         doc_md = Docs.formatdoc(Docs.keywords[query |> Symbol])
-        (repr(MIME("text/html"), doc_md), :👍)
+        # (repr(MIME("text/html"), doc_md), :👍)
+        (doc_md, :👍)
     else
         workspace = WorkspaceManager.get_workspace((session, notebook))
 
@@ -90,7 +91,7 @@ responses[:docs] = (session::ServerSession, body, notebook::Notebook; initiator:
         end
     end
 
-    msg = UpdateMessage(:doc_result, 
+    msg = UpdateMessage(:doc_result,
         Dict(
             :status => status,
             :doc => doc_html,

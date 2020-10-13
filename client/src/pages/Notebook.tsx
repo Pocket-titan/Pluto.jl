@@ -10,6 +10,7 @@ import type { Id, Cell } from "../ts/types";
 import { useListener, send, useSocket, createWebsocket } from "../ts/pluto";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import SelectionArea from "../components/SelectionArea";
 
 // Jesus
 const immer = <T extends State>(
@@ -17,11 +18,12 @@ const immer = <T extends State>(
 ): StateCreator<T> => (set, get, api) =>
   config((fn) => set(produce(fn) as (state: T) => T), get, api);
 
-const useNotebookId = () => {
-  let notebook_id = new URLSearchParams(useLocation().search).get("id");
+const getNotebookId = (): Id => {
+  let notebook_id = new URLSearchParams(window.location.search).get("id");
 
   if (!notebook_id) {
-    throw new Error("Failed to get notebook id");
+    console.error("Failed to get notebook id");
+    return "";
   }
 
   return notebook_id;
@@ -33,14 +35,17 @@ type DeepPartial<T> = {
 
 export const useNotebook = create<{
   cells: Cell[];
+  notebook_id: Id;
   addCell: (cell: Cell, index: number) => void;
   deleteCell: (cell_id: Id) => void;
   changeCells: (cells: DeepPartial<Cell>[]) => void;
   setCells: (cells: Cell[]) => void;
-  moveCells: (cells_ids: Cell["cell_id"][], index: number) => void;
+  moveCells: (cell_ids: Id[], index: number) => void;
+  selectCells: (cell_ids: Id[]) => void;
 }>(
   immer((set, get) => ({
     cells: [],
+    notebook_id: getNotebookId(),
     addCell: (cell, index) => {
       set(({ cells }) => {
         cells.splice(index, 0, cell);
@@ -76,19 +81,26 @@ export const useNotebook = create<{
       }));
     },
     moveCells: (cell_ids, index) => {
-      let { cells } = get();
+      set(({ cells }) => {
+        let new_cells = cell_ids
+          .map((cell_id) => cells.findIndex((cell) => cell.cell_id === cell_id))
+          .filter((index) => index !== -1)
+          .reduce((cells, startIndex, delta) => {
+            let endIndex = index + delta;
+            return reorder(cells, startIndex, endIndex);
+          }, cells);
 
-      let result = cell_ids
-        .map((cell_id) => cells.findIndex((cell) => cell.cell_id === cell_id))
-        .filter((index) => index !== -1)
-        .reduce((cells, startIndex, delta) => {
-          let endIndex = index + delta;
-          return reorder(cells, startIndex, endIndex);
-        }, cells);
-
-      set(() => ({
-        cells: result,
-      }));
+        return {
+          cells: new_cells,
+        };
+      });
+    },
+    selectCells: (cell_ids) => {
+      set((draft) => {
+        draft.cells.forEach((cell) => {
+          cell.selected = cell_ids.includes(cell.cell_id);
+        });
+      });
     },
   }))
 );
@@ -106,15 +118,17 @@ const reorder = <T extends unknown>(
 };
 
 const Notebook = () => {
-  const notebook_id = useNotebookId();
   const {
     cells,
+    notebook_id,
     setCells,
     changeCells,
     addCell,
     deleteCell,
     moveCells,
+    selectCells,
   } = useNotebook();
+  const socket = useSocket((state) => state.socket);
 
   useEffect(() => {
     let init = async () => {
@@ -150,10 +164,10 @@ const Notebook = () => {
         )
       ).then((outputs) => {
         changeCells(
-          outputs.map(({ cell_id, message: { output } }) => {
+          outputs.map(({ cell_id, message }) => {
             return {
               cell_id,
-              output,
+              ...message,
             };
           })
         );
@@ -172,11 +186,11 @@ const Notebook = () => {
     ]);
   });
 
-  useListener("cell_output", ({ cell_id, message: { output } }) => {
+  useListener("cell_output", ({ cell_id, message }) => {
     changeCells([
       {
         cell_id,
-        output,
+        ...message,
       },
     ]);
   });
@@ -188,6 +202,7 @@ const Notebook = () => {
         queued: false,
         errored: false,
         running: false,
+        selected: false,
         output: {
           body: "",
         },
@@ -211,56 +226,67 @@ const Notebook = () => {
     ]);
   });
 
-  useListener("cells_moved", ({ message: { cells, index } }) => {
+  useListener("cells_moved", ({ initiator_id, message: { cells, index } }) => {
+    let fromMyself = initiator_id === socket.client_id;
+
+    if (fromMyself) {
+      return;
+    }
+
     moveCells(cells, index);
+  });
+
+  useListener("cell_queued", ({ cell_id }) => {
+    changeCells([
+      {
+        cell_id,
+        queued: true,
+      },
+    ]);
   });
 
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        gridTemplateColumns: "1fr",
+        height: "100vh",
       }}
     >
+      <SelectionArea />
       <Header />
       <main
         style={{
-          flex: 1,
-          marginRight: "auto",
-          marginLeft: "auto",
-          width: "100%",
-          display: "flex",
-          maxWidth: "80rem",
+          display: "grid",
+          gridTemplateRows: "1fr",
+          gridTemplateColumns: "1fr 60% 1fr",
         }}
       >
         <DragDropContext
-          onDragEnd={(result) => {
-            if (!result.destination) {
+          onDragEnd={({ source, destination }) => {
+            if (!destination) {
               return;
             }
 
-            const newCells = reorder(
-              cells,
-              result.source.index,
-              result.destination.index
-            );
+            const newCells = reorder(cells, source.index, destination.index);
 
             send("move_multiple_cells", {
               notebook_id,
               body: {
-                cells: [cells[result.source.index].cell_id],
-                index: result.destination.index,
+                cells: [cells[source.index].cell_id],
+                index: destination.index,
               },
             });
 
             setCells(newCells);
+            selectCells([]);
           }}
         >
           <Droppable droppableId="droppable">
             {(provided, snapshot) => (
               <main
-                style={{ flex: "1 1 0%" }}
+                style={{ gridColumn: 2 }}
                 {...provided.droppableProps}
                 ref={provided.innerRef}
               >

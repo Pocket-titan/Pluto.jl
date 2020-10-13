@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import * as monaco from "monaco-editor";
-import styled from "styled-components/macro";
+import styled, { css } from "styled-components/macro";
 import _ from "lodash";
 import parse from "html-react-parser";
 import type { Cell, MimeType } from "../../ts/types";
@@ -43,12 +43,23 @@ const ErrorMessage = ({
   msg?: string;
   stacktrace?: string;
 }) => {
-  return <div>{msg}</div>;
+  console.log("stacktrace", stacktrace);
+  return (
+    <div
+      style={{
+        margin: "0.5em 0 0.5em 0",
+      }}
+    >
+      <header>{msg}</header>
+    </div>
+  );
 };
 
 const Jltree = ({ body }: { body: string }) => {
   let Tree = _.omit(parse(body), ["class", "onjltreeclick"]);
   console.log("body", body);
+
+  return null;
 
   if (Tree instanceof Array) {
     return null;
@@ -100,15 +111,21 @@ const RawHTMLContainer = ({ body }: { body: string }) => (
 const StyledOutput = styled.div`
   position: relative;
   display: flex;
-  color: hsl(0, 0%, 70%);
-  background-color: hsl(223, 15%, 12%);
-  padding: 0em 1em 0em 1em;
+  padding: 0em 0.75em 0em 0.75em;
   font-size: 16;
+  transition: all 250ms ease-in-out;
 
+  ${({ theme }) =>
+    theme.isDark
+      ? css`
+          background-color: hsl(223, 15%, 12%);
+          color: hsl(0, 0%, 70%);
+        `
+      : css`
+          background-color: hsl(0, 0%, 80%);
+        `}
   h1,
-  h2,
-  h3,
-  h4 {
+    h2, h3, h4 {
     margin: 0.25em 0px;
   }
 
