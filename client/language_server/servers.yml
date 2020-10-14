@@ -1,4 +1,0 @@
-langservers:
-  julia:
-    - julia
-    - ./julia/boot.jl
