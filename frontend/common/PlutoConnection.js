@@ -1,11 +1,8 @@
-import { Promises } from "../common/SetupCellEnvironment.js"
 import { pack, unpack } from "./MsgPack.js"
 import "./Polyfill.js"
 
 // https://github.com/denysdovhan/wtfjs/issues/61
 const different_Infinity_because_js_is_yuck = 2147483646
-
-const RECONNECT_DELAY = 500
 
 /**
  * Return a promise that resolves to:
@@ -152,7 +149,8 @@ const create_ws_connection = (address, { on_message, on_socket_close }, timeout_
             }
         }
         socket.onerror = async (e) => {
-            console.error(`SOCKET DID AN OOPSIE - ${e.type}`, new Date().toLocaleTimeString(), e)
+            console.error(`SOCKET DID AN OOPSIE - ${e.type}`, new Date().toLocaleTimeString())
+            console.error(e)
 
             if (await socket_is_alright_with_grace_period(socket)) {
                 console.log("The socket somehow recovered from an error?! Onbegrijpelijk")
@@ -168,7 +166,8 @@ const create_ws_connection = (address, { on_message, on_socket_close }, timeout_
             }
         }
         socket.onclose = async (e) => {
-            console.error(`SOCKET DID AN OOPSIE - ${e.type}`, new Date().toLocaleTimeString(), e)
+            console.error(`SOCKET DID AN OOPSIE - ${e.type}`, new Date().toLocaleTimeString())
+            console.error(e)
             console.assert(has_been_open)
 
             if (has_been_open) {
@@ -200,7 +199,7 @@ const create_ws_connection = (address, { on_message, on_socket_close }, timeout_
  *
  * The server can also send messages to all clients, without being requested by them. These end up in the @see on_unrequested_update callback.
  *
- * @typedef {{session_options: Object, send: Function, kill: Function, version_info: {julia: String, pluto: String}}} PlutoConnection
+ * @typedef {{session_options: Object, send: Function, kill: Function, version_info: {julia: String, pluto: String}, secret: String}} PlutoConnection
  * @param {{on_unrequested_update: Function, on_reconnect: Function, on_connection_status: Function, connect_metadata?: Object}} callbacks
  * @return {Promise<PlutoConnection>}
  */
@@ -210,6 +209,7 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
         send: null,
         kill: null,
         session_options: null,
+        secret: null,
         version_info: {
             julia: "unknown",
             pluto: "unknown",
@@ -271,6 +271,16 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
     client.send = send
 
     const connect = async () => {
+        const secret = await (
+            await fetch("websocket_url_please", {
+                method: "GET",
+                cache: "no-cache",
+                redirect: "follow",
+                referrerPolicy: "no-referrer",
+            })
+        ).text()
+        client.secret = secret
+
         let update_url_with_binder_token = async () => {
             try {
                 const url = new URL(window.location.href)
@@ -285,19 +295,16 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
         }
         update_url_with_binder_token()
 
-        const ws_address = new URL(window.location.href)
-        ws_address.protocol = ws_address.protocol.replace("http", "ws")
-        ws_address.pathname = ws_address.pathname.replace("/edit", "/")
-        ws_address.hash = ""
+        const ws_address =
+            document.location.protocol.replace("http", "ws") + "//" + document.location.host + document.location.pathname.replace("/edit", "/") + secret
 
         try {
-            ws_connection = await create_ws_connection(String(ws_address), {
+            ws_connection = await create_ws_connection(ws_address, {
                 on_message: handle_update,
                 on_socket_close: async () => {
                     on_connection_status(false)
 
                     console.log(`Starting new websocket`, new Date().toLocaleTimeString())
-                    await Promises.delay(RECONNECT_DELAY)
                     await connect() // reconnect!
 
                     console.log(`Starting state sync`, new Date().toLocaleTimeString())
@@ -324,7 +331,7 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
             if (connect_metadata.notebook_id != null && !u.message.notebook_exists) {
                 // https://github.com/fonsp/Pluto.jl/issues/55
                 if (confirm("A new server was started - this notebook session is no longer running.\n\nWould you like to go back to the main menu?")) {
-                    window.location.href = "./"
+                    document.location.href = "./"
                 }
                 on_connection_status(false)
                 return {}
@@ -334,6 +341,7 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
             const ping = () => {
                 send("ping", {}, {})
                     .then(() => {
+                        console.info("🏓")
                         setTimeout(ping, 30 * 1000)
                     })
                     .catch()
@@ -342,8 +350,8 @@ export const create_pluto_connection = async ({ on_unrequested_update, on_reconn
 
             return u.message
         } catch (ex) {
-            console.error("connect() failed", ex)
-            await Promises.delay(RECONNECT_DELAY)
+            console.error("connect() failed")
+            console.error(ex)
             return await connect()
         }
     }

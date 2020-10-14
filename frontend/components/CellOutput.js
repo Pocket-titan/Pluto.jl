@@ -1,4 +1,4 @@
-import { html, Component, useRef, useLayoutEffect, useEffect } from "../common/Preact.js"
+import { html, Component } from "../common/Preact.js"
 
 import { resolvable_promise } from "../common/PlutoConnection.js"
 
@@ -7,28 +7,21 @@ import { ErrorMessage } from "./ErrorMessage.js"
 import { connect_bonds } from "../common/Bond.js"
 import { cl } from "../common/ClassTable.js"
 
-import { observablehq_for_cells } from "../common/SetupCellEnvironment.js"
+import "../common/SetupCellEnvironment.js"
 import "../treeview.js"
 
 export class CellOutput extends Component {
-    shouldComponentUpdate({ last_run_timestamp }) {
-        return last_run_timestamp !== this.props.last_run_timestamp
+    constructor() {
+        super()
+        this.displayed_timestamp = 0
     }
 
-    getSnapshotBeforeUpdate() {
-        return this.base.scrollHeight
+    shouldComponentUpdate({ timestamp }) {
+        return timestamp > this.displayed_timestamp
     }
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        // Scroll the page to compensate for change in page height:
-        const new_height = this.base.scrollHeight
-
-        if (document.body.querySelector("pluto-cell:focus-within")) {
-            const cell_outputs_after_focused = document.body.querySelectorAll("pluto-cell:focus-within ~ pluto-cell > pluto-output") // CSS wizardry ✨
-            if (cell_outputs_after_focused.length == 0 || !Array.from(cell_outputs_after_focused).includes(this.base)) {
-                window.scrollBy(0, new_height - snapshot)
-            }
-        }
+    componentWillUpdate() {
+        this.old_height = this.base.scrollHeight
     }
 
     render() {
@@ -45,20 +38,20 @@ export class CellOutput extends Component {
             </pluto-output>
         `
     }
-}
 
-let PlutoImage = ({ body, mime }) => {
-    // I know I know, this looks stupid.
-    // BUT it is necessary to make sure the object url is only created when we are actually attaching to the DOM,
-    // and is removed when we are detatching from the DOM
-    let imgref = useRef()
-    useLayoutEffect(() => {
-        let url = URL.createObjectURL(new Blob([body], { type: mime }))
-        imgref.current.src = url
-        return () => URL.revokeObjectURL(url)
-    }, [body])
+    componentDidUpdate() {
+        this.displayed_timestamp = this.props.timestamp
 
-    return html`<div><img ref=${imgref} type=${mime} src=${""} /></div>`
+        // Scroll the page to compensate for change in page height:
+        const new_height = this.base.scrollHeight
+
+        if (document.body.querySelector("pluto-cell:focus-within")) {
+            const cell_outputs_after_focused = document.body.querySelectorAll("pluto-cell:focus-within ~ pluto-cell > pluto-output") // CSS wizardry ✨
+            if (cell_outputs_after_focused.length == 0 || !Array.from(cell_outputs_after_focused).includes(this.base)) {
+                window.scrollBy(0, new_height - this.old_height)
+            }
+        }
+    }
 }
 
 const OutputBody = ({ mime, body, cell_id, all_completed_promise, requests }) => {
@@ -69,19 +62,10 @@ const OutputBody = ({ mime, body, cell_id, all_completed_promise, requests }) =>
         case "image/gif":
         case "image/bmp":
         case "image/svg+xml":
-            return html`<${PlutoImage} mime=${mime} body=${body} />`
+            const src = URL.createObjectURL(new Blob([body], { type: mime }))
+            return html`<div><img type=${mime} src=${src} /></div>`
             break
         case "text/html":
-            // Snippets starting with <!DOCTYPE or <html> are considered "full pages" that get their own iframe.
-            // Not entirely sure if this works the best, or if this slows down notebooks with many plots too much.
-            // AFAIK JSServe and Plotly both trigger and iframe now.
-            // NOTE: Jupyter doesn't do this, jupyter renders everything directly in pages DOM
-            if (body.startsWith("<!DOCTYPE ") || body.startsWith("<html>")) {
-                return html`<${IframeContainer} body=${body} />`
-            } else {
-                return html`<${RawHTMLContainer} body=${body} all_completed_promise=${all_completed_promise} requests=${requests} />`
-            }
-            break
         case "application/vnd.pluto.tree+xml":
             return html`<${RawHTMLContainer} body=${body} all_completed_promise=${all_completed_promise} requests=${requests} />`
             break
@@ -102,169 +86,89 @@ const OutputBody = ({ mime, body, cell_id, all_completed_promise, requests }) =>
     }
 }
 
-let IframeContainer = ({ body }) => {
-    let iframeref = useRef()
-    useLayoutEffect(() => {
-        let url = URL.createObjectURL(new Blob([body], { type: "text/html" }))
-        iframeref.current.src = url
+const execute_scripttags = (root_node, [next_node, ...remaining_nodes]) => {
+    const rp = resolvable_promise()
 
-        run(async () => {
-            await new Promise((resolve) => iframeref.current.addEventListener("load", () => resolve()))
-            let iframeDocument = iframeref.current.contentWindow.document
-
-            // Insert iframe resizer inside the iframe
-            let x = iframeDocument.createElement("script")
-            x.src = "https://cdn.jsdelivr.net/npm/iframe-resizer@4.2.11/js/iframeResizer.contentWindow.min.js"
-            x.integrity = "sha256-EH+7IdRixWtW5tdBwMkTXL+HvW5tAqV4of/HbAZ7nEc="
-            x.crossOrigin = "anonymous"
-            iframeDocument.head.appendChild(x)
-
-            // Apply iframe resizer from the host side
-            new Promise((resolve) => x.addEventListener("load", () => resolve()))
-            window.iFrameResize({ checkOrigin: false }, iframeref.current)
-        })
-
-        return () => URL.revokeObjectURL(url)
-    }, [body])
-
-    return html`<iframe style=${{ width: "100%", border: "none" }} src="" ref=${iframeref}></div>`
-}
-
-/**
- * Call a block of code with with environment inserted as local bindings (even this)
- *
- * @param {{ code: string, environment: { [name: string]: any } }} options
- */
-let execute_dynamic_function = async ({ environment, code }) => {
-    const wrapped_code = `
-        "use strict";
-        let fn = async () => {
-            ${code}
-        }
-        return fn()
-    `
-
-    let { ["this"]: this_value, ...args } = environment
-    let arg_names = Object.keys(args)
-    let arg_values = Object.values(args)
-    const result = await Function(...arg_names, wrapped_code).bind(this_value)(...arg_values)
-    return result
-}
-
-const execute_scripttags = async ({ root_node, script_nodes, previous_results_map, invalidation }) => {
-    let results_map = new Map()
-
-    // Run scripts sequentially
-    for (let node of script_nodes) {
-        root_node.currentScript = node
-
-        if (node.src != "") {
-            // If it has a remote src="", de-dupe and copy the script to head
-            if (!Array.from(document.head.querySelectorAll("script")).some((s) => s.src === node.src)) {
-                const new_el = document.createElement("script")
-                new_el.src = node.src
-                new_el.type = node.type === "module" ? "module" : "text/javascript"
-
-                // new_el.async = false
-                await new Promise((resolve) => {
-                    new_el.addEventListener("load", resolve)
-                    new_el.addEventListener("error", resolve)
-                    document.head.appendChild(new_el)
-                })
-            } else {
-                continue
-            }
-        } else {
-            // If there is no src="", we take the content en run it in an observablehq-like environment
-            try {
-                let script_id = node.id
-                let result = await execute_dynamic_function({
-                    environment: {
-                        this: script_id ? previous_results_map.get(script_id) : undefined,
-                        currentScript: node,
-                        invalidation: invalidation,
-                        ...observablehq_for_cells,
-                    },
-                    code: node.innerHTML,
-                })
-                // Save result for next run
-                if (script_id != null) {
-                    results_map.set(script_id, result)
-                }
-                // Insert returned element
-                if (result instanceof HTMLElement && result.nodeType === Node.ELEMENT_NODE) {
-                    node.parentElement.insertBefore(result, node)
-                }
-            } catch (err) {
-                console.log("Couldn't execute script:", node)
-                console.error(err)
-                // TODO: relay to user
-            }
-        }
+    if (next_node == null) {
+        rp.resolve()
+        return rp.current
     }
-    return results_map
+    const load_next = () => execute_scripttags(root_node, remaining_nodes).then(rp.resolve)
+
+    root_node.currentScript = next_node
+    if (next_node.src != "") {
+        if (!Array.from(document.head.querySelectorAll("script")).some((s) => s.src === next_node.src)) {
+            const new_el = document.createElement("script")
+            new_el.src = next_node.src
+            new_el.type = next_node.type === "module" ? "module" : "text/javascript"
+
+            // new_el.async = false
+            new_el.addEventListener("load", load_next)
+            new_el.addEventListener("error", load_next)
+            document.head.appendChild(new_el)
+        } else {
+            load_next()
+        }
+    } else {
+        try {
+            const result = Function(next_node.innerHTML).bind(root_node)()
+            if (result != null) {
+                console.log(result)
+                if (result.nodeType === Node.ELEMENT_NODE) {
+                    next_node.parentElement.insertBefore(result, next_node.nextSibling)
+                }
+            }
+        } catch (err) {
+            console.log("Couldn't execute script:")
+            console.error(err)
+            // TODO: relay to user
+        }
+        load_next()
+    }
+    return rp.current
 }
 
-let run = (f) => f()
+export class RawHTMLContainer extends Component {
+    render_DOM() {
+        this.base.innerHTML = this.props.body
 
-export let RawHTMLContainer = ({ body, all_completed_promise, requests }) => {
-    let previous_results_map = useRef(new Map())
-
-    let invalidate_scripts = useRef(() => {})
-
-    let container = useRef()
-
-    useLayoutEffect(() => {
-        // Invalidate current scripts and create a new invalidation token immediately
-        let invalidation = new Promise((resolve) => {
-            invalidate_scripts.current = () => {
-                resolve()
-            }
-        })
-
-        // Actually "load" the html
-        container.current.innerHTML = body
-
-        run(async () => {
-            previous_results_map.current = await execute_scripttags({
-                root_node: container.current,
-                script_nodes: Array.from(container.current.querySelectorAll("script")),
-                invalidation: invalidation,
-                previous_results_map: previous_results_map.current,
-            })
-
-            if (all_completed_promise != null && requests != null) {
-                connect_bonds(container.current, all_completed_promise, requests)
+        execute_scripttags(this.base, Array.from(this.base.querySelectorAll("script"))).then(() => {
+            if (this.props.all_completed_promise != null && this.props.requests != null) {
+                connect_bonds(this.base, this.props.all_completed_promise, this.props.requests)
             }
 
             // convert LaTeX to svg
             try {
-                window.MathJax.typeset([container.current])
+                window.MathJax.typeset([this.base])
             } catch (err) {
                 console.info("Failed to typeset TeX:")
                 console.info(err)
             }
 
-            // Apply julia syntax highlighting
-            try {
-                for (let code_element of container.current.querySelectorAll("code.language-julia")) {
-                    highlight_julia(code_element)
-                }
-            } catch (err) {}
+            if (this.props.on_render != null) {
+                this.props.on_render(this.base)
+            }
         })
+    }
 
-        return () => {
-            invalidate_scripts.current?.()
+    shouldComponentUpdate(new_props) {
+        const pure = this.props.pure === true && new_props.pure === true
+        if (pure) {
+            return this.props.body !== new_props.body
+        } else {
+            return true
         }
-    })
+    }
 
-    return html`<div ref=${container}></div>`
-}
+    componentDidUpdate() {
+        this.render_DOM()
+    }
 
-/** @param {HTMLElement} code_element */
-export let highlight_julia = (code_element) => {
-    if (code_element.children.length !== 0) return
+    componentDidMount() {
+        this.render_DOM()
+    }
 
-    window.CodeMirror.runMode(code_element.innerText, "julia", code_element)
-    code_element.classList.add("cm-s-default")
+    render() {
+        return html`<div></div>`
+    }
 }

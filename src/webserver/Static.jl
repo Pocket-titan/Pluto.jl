@@ -45,35 +45,6 @@ function notebook_redirect_response(notebook; home_url="./")
     return response
 end
 
-"""
-Return whether the `request` was authenticated in one of two ways:
-1. the session's `secret` was included in the URL as a search parameter, or
-2. the session's `secret` was included in a cookie.
-"""
-function is_authenticated(session::ServerSession, request::HTTP.Request)
-    (
-        secret_in_url = try
-            uri = HTTP.URI(request.target)
-            query = HTTP.queryparams(uri)
-            get(query, "secret", "") == session.secret
-        catch e
-            @warn "Failed to authenticate request using URL" exception = (e, catch_backtrace())
-            false
-        end
-    ) || (
-        secret_in_cookie = try
-            cookies = HTTP.cookies(request)
-            any(cookies) do cookie
-                cookie.name == "secret" && cookie.value == session.secret
-            end
-        catch e
-            @warn "Failed to authenticate request using cookies" exception = (e, catch_backtrace())
-            false
-        end
-    )
-    # that ) || ( kind of looks like Krabs from spongebob
-end
-
 function http_router_for(session::ServerSession)
     router = HTTP.Router()
 
@@ -106,11 +77,8 @@ function http_router_for(session::ServerSession)
         end
     end
 
-    serve_newfile = with_authentication(;
-        required=security.require_secret_for_access ||
-        security.require_secret_for_open_links
-    ) do request::HTTP.Request
-        notebook_redirect_response(SessionActions.new(session))
+    function serve_newfile(req::HTTP.Request)
+        return notebook_redirect_response(SessionActions.new(session))
     end
     HTTP.@register(router, "GET", "/new", request -> begin
         response = serve_newfile(request)
@@ -121,20 +89,24 @@ function http_router_for(session::ServerSession)
     function serve_openfile(req::HTTP.Request)
         uri = HTTP.URI(req.target)
         try
-            uri = HTTP.URI(request.target)
             query = HTTP.queryparams(uri)
-            if haskey(query, "path")
-                path = tamepath(query["path"])
-                if isfile(path)
-                    return try_launch_notebook_response(SessionActions.open, path, title="Failed to load notebook", advice="The file <code>$(htmlesc(path))</code> could not be loaded. Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!")
-                else
-                    return error_response(404, "Can't find a file here", "Please check whether <code>$(htmlesc(path))</code> exists.")
-                end
-            elseif haskey(query, "url")
-                url = query["url"]
-                return try_launch_notebook_response(SessionActions.open_url, url, title="Failed to load notebook", advice="The notebook from <code>$(htmlesc(url))</code> could not be loaded. Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!")
+
+            if session.options.security.require_token_for_open_links && (UUID(get(query, "secret", string(uuid1()))) != session.secret)
+                error_response(405, "Functionality disabled", "This Pluto server does not allow the requested action. If you are running the server yourself, have a look at the <em>security</em> keyword argument to <em>Pluto.run</em>. Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a> if you did not expect it!")
             else
-                error("Empty request")
+                if haskey(query, "path")
+                    path = tamepath(query["path"])
+                    if isfile(path)
+                        return try_launch_notebook_response(SessionActions.open, path, title="Failed to load notebook", advice="The file <code>$(htmlesc(path))</code> could not be loaded. Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!")
+                    else
+                        return error_response(404, "Can't find a file here", "Please check whether <code>$(htmlesc(path))</code> exists.")
+                    end
+                elseif haskey(query, "url")
+                    url = query["url"]
+                    return try_launch_notebook_response(SessionActions.open_url, url, title="Failed to load notebook", advice="The notebook from <code>$(htmlesc(url))</code> could not be loaded. Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!")
+                else
+                    error("Empty request")
+                end
             end
         catch e
             return error_response(400, "Bad query", "Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!", sprint(showerror, e, stacktrace(catch_backtrace())))
@@ -158,7 +130,6 @@ function http_router_for(session::ServerSession)
     function serve_notebookfile(req::HTTP.Request)
         uri = HTTP.URI(req.target)
         try
-            uri = HTTP.URI(request.target)
             query = HTTP.queryparams(uri)
             id = UUID(query["id"])
             notebook = session.notebooks[id]
@@ -180,7 +151,6 @@ function http_router_for(session::ServerSession)
         asset_response(filepath)
     end
     HTTP.@register(router, "GET", "/*", serve_asset)
-    HTTP.@register(router, "GET", "/favicon.ico", create_serve_onefile(project_relative_path("frontend", "img", "favicon.ico")))
 
     return router
 end
