@@ -93,8 +93,8 @@ Try drawing a rectangle in the canvas below 👇 and notice that the `area` vari
 <canvas width="200" height="200" style="position: relative"></canvas>
 
 <script>
-// 🐸 `currentScript` is the current script tag - we use it to select elements 🐸 //
-const canvas = currentScript.closest('pluto-output').querySelector("canvas")
+// 🐸 `this` is the cell output wrapper - we use it to select elements 🐸 //
+const canvas = this.querySelector("canvas")
 const ctx = canvas.getContext("2d")
 
 var startX = 80

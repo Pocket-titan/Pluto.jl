@@ -38,7 +38,7 @@ The `ServerSession` keeps track of:
 Base.@kwdef mutable struct ServerSession
     connected_clients::Dict{Symbol,ClientSession} = Dict{Symbol,ClientSession}()
     notebooks::Dict{UUID,Notebook} = Dict{UUID,Notebook}()
-    secret::String = String(rand(('a':'z') ∪ ('A':'Z') ∪ ('0':'9'), 8))
+    secret::UUID = uuid1()
     binder_token::Union{String,Nothing} = nothing
     options::Configuration.Options = Configuration.Options()
 end
@@ -66,7 +66,6 @@ function clientupdate_cell_output(notebook::Notebook, cell::Cell; initiator::Uni
             :runtime => cell.runtime,
             :errored => cell.errored,
             :output => Dict(
-                :last_run_timestamp => cell.last_run_timestamp,
                 :mime => cell.repr_mime,
                 :body => cell.output_repr,
                 :rootassignee => cell.rootassignee,
@@ -122,7 +121,7 @@ function clientupdate_notebook_list(notebooks; initiator::Union{Initiator,Missin
                 Dict(
                     :notebook_id => notebook.notebook_id,
                     :path => notebook.path,
-                    :in_temp_dir => startswith(notebook.path, new_notebooks_directory()),
+                    :in_temp_dir => startswith(notebook.path, tempdir()),
                     :shortpath => basename(notebook.path)
                 ) for notebook in values(notebooks)
             ]
