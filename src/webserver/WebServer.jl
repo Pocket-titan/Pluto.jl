@@ -84,16 +84,16 @@ end
 
 function run(host::String, port::Union{Nothing,Integer}=nothing; kwargs...)
     @error "Deprecated in favor of:
-    
+
         run(;host=$host, port=$port)
     "
 end
 
 function run(port::Integer; kwargs...)
     @error "Oopsie! This is the old command to launch Pluto. The new command is:
-    
+
         Pluto.run()
-    
+
     without the port as argument - it will choose one automatically. If you need to specify the port, use:
 
         Pluto.run(port=$port)
@@ -136,42 +136,42 @@ function run(session::ServerSession)
                         return
                     end
                     try
-                    while !eof(clientstream)
+                        while !eof(clientstream)
                         # This stream contains data received over the WebSocket.
                         # It is formatted and MsgPack-encoded by send(...) in PlutoConnection.js
-                        try
-                            parentbody = let
-                                # For some reason, long (>256*512 bytes) WS messages get split up - `readavailable` only gives the first 256*512 
-                                data = UInt8[]
-                                while !endswith(data, MSG_DELIM)
-                                    if eof(clientstream)
-                                        if isempty(data)
-                                            return
+                            try
+                                parentbody = let
+                                # For some reason, long (>256*512 bytes) WS messages get split up - `readavailable` only gives the first 256*512
+                                    data = UInt8[]
+                                    while !endswith(data, MSG_DELIM)
+                                        if eof(clientstream)
+                                            if isempty(data)
+                                                return
+                                            end
+                                            @warn "Unexpected eof after" data
+                                            append!(data, MSG_DELIM)
+                                            break
                                         end
-                                        @warn "Unexpected eof after" data
-                                        append!(data, MSG_DELIM)
-                                        break
+                                        append!(data, readavailable(clientstream))
                                     end
-                                    append!(data, readavailable(clientstream))
-                                end
                                 # TODO: view to avoid memory allocation
-                                unpack(data[1:end - length(MSG_DELIM)])
-                            end
-                            process_ws_message(session, parentbody, clientstream)
-                        catch ex
-                            if ex isa InterruptException
-                                kill_server[]()
-                            elseif ex isa HTTP.WebSockets.WebSocketError || ex isa EOFError
+                                    unpack(data[1:end - length(MSG_DELIM)])
+                                end
+                                process_ws_message(session, parentbody, clientstream)
+                            catch ex
+                                if ex isa InterruptException
+                                    kill_server[]()
+                                elseif ex isa HTTP.WebSockets.WebSocketError || ex isa EOFError
                                 # that's fine!
-                            elseif ex isa InexactError
+                                elseif ex isa InexactError
                                 # that's fine! this is a (fixed) HTTP.jl bug: https://github.com/JuliaWeb/HTTP.jl/issues/471
                                 # TODO: remove this switch
-                            else
-                                bt = stacktrace(catch_backtrace())
-                                @warn "Reading WebSocket client stream failed for unknown reason:" exception = (ex, bt)
+                                else
+                                    bt = stacktrace(catch_backtrace())
+                                    @warn "Reading WebSocket client stream failed for unknown reason:" exception = (ex, bt)
+                                end
                             end
                         end
-                    end
                     catch ex
                         if ex isa InterruptException
                             kill_server[]()
@@ -202,7 +202,7 @@ function run(session::ServerSession)
 
             # If a "token" url parameter is passed in from binder, then we store it to add to every URL (so that you can share the URL to collaborate).
             params = HTTP.queryparams(HTTP.URI(request.target))
-            if haskey(params, "token") && session.binder_token === nothing 
+            if haskey(params, "token") && session.binder_token === nothing
                 session.binder_token = params["token"]
             end
 
@@ -213,7 +213,7 @@ function run(session::ServerSession)
             else
                 @warn "HTTP request contains a body, huh?" request_body
             end
-    
+
             request.response::HTTP.Response = response_body
             request.response.request = request
             try
@@ -262,7 +262,7 @@ function run(session::ServerSession)
         println("\n\nClosing Pluto... Restart Julia for a fresh session. \n\nHave a nice day! 🎈")
         @async close(serversocket)
         # TODO: HTTP has a kill signal?
-        # TODO: put do_work tokens back 
+        # TODO: put do_work tokens back
         for client in values(session.connected_clients)
             @async close(client.stream)
         end
@@ -291,7 +291,7 @@ function process_ws_message(session::ServerSession, parentbody::Dict, clientstre
     client_id = Symbol(parentbody["client_id"])
     client = get!(session.connected_clients, client_id, ClientSession(client_id, clientstream))
     client.stream = clientstream # it might change when the same client reconnects
-    
+
     messagetype = Symbol(parentbody["type"])
     request_id = Symbol(parentbody["request_id"])
 
@@ -309,7 +309,7 @@ function process_ws_message(session::ServerSession, parentbody::Dict, clientstre
                 client.connected_notebook = notebook
             end
         end
-        
+
         push!(args, notebook)
 
         if haskey(parentbody, "cell_id")

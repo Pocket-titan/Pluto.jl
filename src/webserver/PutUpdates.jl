@@ -1,6 +1,6 @@
 
 function serialize_message_to_stream(io::IO, message::UpdateMessage)
-    to_send = Dict(:type => message.type, :message => message.message)
+    to_send = Dict(:type => message.type, :body => message.body)
     if message.notebook !== nothing
         to_send[:notebook_id] = message.notebook.notebook_id
     end
@@ -33,7 +33,7 @@ function putnotebookupdates!(session::ServerSession, notebook::Notebook, message
     end
     flush && flushallclients(session, listeners)
     listeners
-end
+    end
 
 "Send `messages` to all connected clients."
 function putplutoupdates!(session::ServerSession, messages::UpdateMessage...; flush::Bool=true)
@@ -45,7 +45,7 @@ function putplutoupdates!(session::ServerSession, messages::UpdateMessage...; fl
     listeners
 end
 
-"Send `messages` to a `client`."
+    "Send `messages` to a `client`."
 function putclientupdates!(client::ClientSession, messages::UpdateMessage...)
     for next_to_send in messages
         put!(client.pendingupdates, next_to_send)
@@ -66,7 +66,7 @@ function flushclient(client::ClientSession)
     take!(flushtoken)
     while isready(client.pendingupdates)
         next_to_send = take!(client.pendingupdates)
-        
+
         try
             if client.stream !== nothing
                 if isopen(client.stream)
@@ -75,7 +75,7 @@ function flushclient(client::ClientSession)
                     end
                     write(client.stream, serialize_message(next_to_send), MSG_DELIM)
                 else
-                    put!(flushtoken)
+                put!(flushtoken)
                     return false
                 end
             end

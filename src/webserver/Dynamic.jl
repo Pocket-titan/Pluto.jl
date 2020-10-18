@@ -13,7 +13,7 @@ function change_remote_cellinput!(session::ServerSession, notebook::Notebook, ce
         cell.code = newcode
         cell.parsedcode = nothing
     end
-    
+
     putnotebookupdates!(session, notebook, clientupdate_cell_input(notebook, cell, initiator=initiator))
 end
 
@@ -41,7 +41,7 @@ responses[:add_cell] = (session::ServerSession, body, notebook::Notebook; initia
     new_cell.output_repr = "" # we 'run' the code and get this output
 
     insert!(notebook.cells, new_index, new_cell)
-    
+
     putnotebookupdates!(session, notebook, clientupdate_cell_added(notebook, new_cell, new_index, initiator=initiator))
     save_notebook(notebook)
 end
@@ -53,7 +53,7 @@ responses[:delete_cell] = (session::ServerSession, body, notebook::Notebook, cel
     # replace the cell's code with "" and do a reactive run
     change_remote_cellinput!(session, notebook, to_delete, "", initiator=initiator)
     runtask = update_save_run!(session, notebook, [to_delete]; run_async=true)::Task
-    
+
     # wait for the reactive run to finish, then delete the cells
     # we wait async, to make sure that the web server remains responsive
     @asynclog begin
@@ -81,7 +81,7 @@ responses[:move_multiple_cells] = (session::ServerSession, body, notebook::Noteb
     after = setdiff(notebook.cells[new_index:end], cells)
 
     notebook.cells = [before; cells; after]
-    
+
     putnotebookupdates!(session, notebook, clientupdate_cells_moved(notebook, cells, new_index, initiator=initiator))
     save_notebook(notebook)
 end
@@ -113,7 +113,7 @@ responses[:run_multiple_cells] = (session::ServerSession, body, notebook::Notebo
     update_save_run!(session, notebook, cells; run_async=true, save=true)
 end
 
-responses[:getinput] = (session::ServerSession, body, notebook::Notebook, cell::Cell; initiator::Union{Initiator,Missing}=missing) -> let
+responses[:get_input] = (session::ServerSession, body, notebook::Notebook, cell::Cell; initiator::Union{Initiator,Missing}=missing) -> let
     putclientupdates!(session, initiator, clientupdate_cell_input(notebook, cell, initiator=initiator))
 end
 
@@ -131,7 +131,7 @@ responses[:get_all_cells] = (session::ServerSession, body, notebook::Notebook; i
         Dict(:cells => [Dict(
                 :cell_id => string(cell.cell_id),
                 ) for cell in notebook.cells]), nothing, nothing, initiator)
-    
+
     putclientupdates!(session, initiator, update)
 end
 
@@ -162,12 +162,12 @@ responses[:set_bond] = (session::ServerSession, body, notebook::Notebook; initia
     variable_exists = is_assigned_anywhere(notebook, notebook.topology, bound_sym)
     if variable_exists
         any_dependents = is_referenced_anywhere(notebook, notebook.topology, bound_sym)
-        
+
         # Assume `body["is_first_value"] == false` if you want to skip an edge case in this code
         triggered_other_cells = if body["is_first_value"]
             # fix for https://github.com/fonsp/Pluto.jl/issues/275
             # if `Base.get` was defined to give an initial value (read more about this in the Interactivity sample notebook), then we want to skip the first value sent back from the bond. (if `Base.get` was not defined, then the variable has value `missing`)
-            
+
             # check if the variable does not already have that value.
             eq_tester = :(try !ismissing($bound_sym) && ($bound_sym == $new_val) catch; false end) # not just a === comparison because JS might send back the same value but with a different type (Float64 becomes Int64 in JS when it's an integer.)
             fetched_result = WorkspaceManager.eval_fetch_in_workspace((session, notebook), eq_tester)
@@ -180,11 +180,11 @@ responses[:set_bond] = (session::ServerSession, body, notebook::Notebook; initia
         else
             any_dependents
         end
-    
-        reponse = Dict(body..., "triggered_other_cells" => triggered_other_cells)
-    
-        putnotebookupdates!(session, notebook, UpdateMessage(:bond_update, reponse, notebook, nothing, initiator))
-        
+
+        response = Dict(body..., "triggered_other_cells" => triggered_other_cells)
+
+        putnotebookupdates!(session, notebook, UpdateMessage(:bond_update, response, notebook, nothing, initiator))
+
         function custom_deletion_hook((session, notebook)::Tuple{ServerSession,Notebook}, to_delete_vars::Set{Symbol}, funcs_to_delete::Set{Tuple{UUID,FunctionName}}, to_reimport::Set{Expr}; to_run::Array{Cell,1})
             push!(to_delete_vars, bound_sym) # also delete the bound symbol
             WorkspaceManager.delete_vars((session, notebook), to_delete_vars, funcs_to_delete, to_reimport)

@@ -66,7 +66,7 @@ html"<div style='height: 100vh'></div>"
 md"## Bad errors"
 
 # ╔═╡ ee92a570-b166-11ea-38fa-0f3563b3f790
-TODO: add that error showing error to the Julia tests
+# TODO: add that error showing error to the Julia tests
 
 # ╔═╡ 4f32c16e-b15e-11ea-314e-01700baeb92d
 md"# Bonds"
@@ -201,7 +201,7 @@ md"---
 ---"
 
 # ╔═╡ 3804ce76-d68e-11ea-1641-b9d5e4d9bace
-md"Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic 
+md"Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic
 
 ---
 
@@ -247,14 +247,14 @@ md"""
 !!! warning
 
     asdf
-    
+
     line 2
 
 
 !!! danger
 
     asdf
-    
+
     line 2
 
 
@@ -268,11 +268,11 @@ asdfdasd
 [^1]: adsf
 [^two]:
     asdfasfd
-    
+
     line 2
 [^thrice]:
     Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
-    
+
     line 2"
 
 # ╔═╡ 46fc284a-d682-11ea-34b6-69874efcaf65
@@ -285,7 +285,7 @@ md"# Testing machinery"
 html"""
 <style>
 .test {
-	padding: .5em; 
+	padding: .5em;
 	border-radius: 6px;
 }
 .test::before,
@@ -297,10 +297,10 @@ html"""
 }
 
 .test.manual {
-	background-color: rgba(200, 150, 0, .2); 
+	background-color: rgba(200, 150, 0, .2);
 }
 .test.visual {
-	background-color: rgba(0, 150, 200, .2); 
+	background-color: rgba(0, 150, 200, .2);
 }
 .test.manual::before {
 	content: "MANUAL ";
@@ -328,8 +328,8 @@ mb = 2
 
 # ╔═╡ 9dc4a0a0-b15f-11ea-361c-87742cf3f2a2
 function ef(x)
-	
-	
+
+
 	sqrt(-x)
 end
 
@@ -338,8 +338,8 @@ ef(1)
 
 # ╔═╡ 976bc2a0-b160-11ea-3e7a-9f033b0f2daf
 function eg(x)
-	
-	
+
+
 	sqrt(-x)
 end
 
@@ -380,13 +380,13 @@ HTML("<div style='height: $(bw2)vh'></div>")
 zeros((bw2, bw2))
 
 # ╔═╡ 76c98394-cfff-11ea-0b6c-25260a8a3bb9
-zeros((10,10));
+zeros((10, 10));
 
 # ╔═╡ 52cb1264-d824-11ea-332a-55964f3d8b90
 begin
 	struct A end
 	struct B end
-	
+
 	function Base.show(io::IO, ::MIME"image/svg+xml", x::A)
 		write(io, read(download("https://raw.githubusercontent.com/fonsp/Pluto.jl/master/frontend/img/logo.svg")))
 	end
@@ -415,7 +415,7 @@ ra = 1:100
 Ref(Dict(:a => [1,md"![](https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/PDS_70.jpg/567px-PDS_70.jpg)", md"# Hello"], [3,4] => :b))
 
 # ╔═╡ 4d452956-d682-11ea-3aeb-cd7d1b2f67dc
-s="12345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678056780123456780123456780123456780123456780123456780123456780123456780123456780120123456780\n\n\"\"\n\n5678012345678012
+s = "12345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678012345678056780123456780123456780123456780123456780123456780123456780123456780123456780120123456780\n\n\"\"\n\n5678012345678012
 
 7801234567801234567801234567 7801234567801234567801234567 7801234567801234567801234567 7801234567801234567801234567 7801234567801234567801234567
 
@@ -447,7 +447,7 @@ ask("manual", md"Autocompleting a **directory** using ENTER does what you expect
 ask("manual", md"Delete `jl` from the end, it gives **one** suggestion: the original path, with a sheet-of-paper icon")
 
 # ╔═╡ 6e04dd80-b164-11ea-0b33-7dc165574a35
-ask("manual", md"Delete `?.jl` (4 charachters) from the end, it gives **two** suggestions: 
+ask("manual", md"Delete `?.jl` (4 charachters) from the end, it gives **two** suggestions:
 - the original path, with a sheet-of-paper icon
 - a new suggested path, which ends with `.jl (new)` and has a different icon
 
@@ -482,12 +482,12 @@ ask("manual", md"Test autocomplete")
 
 # ╔═╡ cd3f70fc-c137-11ea-2871-936287684d2c
 ask("manual", md"Select a chunk of code, then put your cursor in another cell
-	
+
 Selection of the original cell should collapse")
 
 # ╔═╡ f7297d72-c137-11ea-3a9b-a10be62c3976
 ask("manual", md"Put your cursor in this cell, scroll down 2 screens, and click somewhere else
-	
+
 Page should not jump back to this cell")
 
 # ╔═╡ 4902abb2-b160-11ea-1120-f501bf151fc2
@@ -504,7 +504,7 @@ ask("manual", md"Click both yellow items in the stack trace, the relevant line s
 
 # ╔═╡ ba734f30-b15f-11ea-0490-a55c3739e4bf
 ask("visual", md"Stack trace should have **5** frames and they should look nice
-	
+
 The last **2** should have yellow 'filenames'")
 
 # ╔═╡ a4f07420-b160-11ea-2c62-9115046e4e24
@@ -584,7 +584,7 @@ $$\frac{\pi^2}{2}$$
 
  $(ask("visual", md"Greek"))
 
-Πλθτο ισ εεν πλανεετ! Some maths: 
+Πλθτο ισ εεν πλανεετ! Some maths:
 
  $(ask("visual broken", md"Identical symbols:"))
 
