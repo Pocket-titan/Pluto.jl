@@ -40,7 +40,7 @@ function run_reactive!(session::ServerSession, notebook::Notebook, old_topology:
 	local listeners = ClientSession[]
 	for cell in to_run
 		cell.queued = true
-		listeners = putnotebookupdates!(session, notebook, clientupdate_cell_queued(notebook, cell); flush=false)		
+		listeners = putnotebookupdates!(session, notebook, clientupdate_cell_queued(notebook, cell); flush=false)
 	end
 	for (cell, error) in new_order.errable
 		cell.running = false
@@ -66,7 +66,7 @@ function run_reactive!(session::ServerSession, notebook::Notebook, old_topology:
 
 	local any_interrupted = false
 	for (i, cell) in enumerate(to_run)
-		
+
 		cell.queued = false
 		cell.running = true
 		putnotebookupdates!(session, notebook, clientupdate_cell_output(notebook, cell))
@@ -77,7 +77,7 @@ function run_reactive!(session::ServerSession, notebook::Notebook, old_topology:
 			run = run_single!((session, notebook), cell)
 			any_interrupted |= run.interrupted
 		end
-		
+
 		cell.running = false
 		putnotebookupdates!(session, notebook, clientupdate_cell_output(notebook, cell))
 	end
@@ -124,7 +124,7 @@ function update_save_run!(session::ServerSession, notebook::Notebook, cells::Arr
 	old = notebook.topology
 	new = notebook.topology = updated_topology(old, notebook, cells)
 	save && save_notebook(notebook)
-	
+
 	# _assume `prerender_text == false` if you want to skip some details_
 
 	to_run_online = if !prerender_text
@@ -143,7 +143,7 @@ function update_save_run!(session::ServerSession, notebook::Notebook, cells::Arr
 		for cell in to_run_offline
 			run_single!(offline_workspace, cell)
 		end
-		
+
 		cd(original_pwd)
 		setdiff(cells, to_run_offline)
 	end

@@ -3,7 +3,7 @@ import ReconnectingWebsocket, { UrlProvider } from "reconnecting-websocket";
 import normalizeUrl from "normalize-url";
 import create from "zustand";
 import { encodeMessage, decodeMessage } from "./msgpack";
-import { getUniqueShortId, getNotebookId } from "./utils";
+import { getUniqueShortId } from "./utils";
 import type {
   Message,
   MessageType,
@@ -70,7 +70,7 @@ class Socket {
 
         let request = this.requests.get(update.request_id);
         if (request) {
-          request(update.body);
+          request(update);
           this.requests.delete(update.request_id);
         }
       } else {
@@ -84,11 +84,11 @@ class Socket {
     this.socket = socket;
   }
 
-  /** Messages _do_ receive a response */
-  async sendMessage<T extends MessageType & keyof ResponseMap>(
+  /** Requests _do_ receive a response */
+  async sendRequest<T extends MessageType & keyof ResponseMap>(
     type: T,
     rest: Partial<Exclude<Message<T>, "type" | "request_id" | "client_id">> = {}
-  ): Promise<Update<ResponseMap[T]>["body"]> {
+  ): Promise<Update<ResponseMap[T]>> {
     let message = {
       type,
       request_id: getUniqueShortId(),
@@ -97,13 +97,13 @@ class Socket {
       ...rest,
     };
 
-    console.log("🦖 Sending message", message);
+    console.log("🦖 Sending request", message);
 
     let encodedMessage = encodeMessage(message);
     this.socket.send(encodedMessage);
 
     return new Promise((resolve) => {
-      this.requests.set(message.request_id, resolve);
+      this.requests.set(message.request_id, resolve as Listener);
     });
   }
 
@@ -119,6 +119,8 @@ class Socket {
       body: {},
       ...rest,
     };
+
+    console.log("🦖 Sending notification", message);
 
     let encodedMessage = encodeMessage(message);
     this.socket.send(encodedMessage);
@@ -154,16 +156,16 @@ const useSocket = create<{ socket: Socket }>((set, get) => ({
 }));
 
 /** Send a message; does receive a response */
-async function sendMessage<T extends MessageType & keyof ResponseMap>(
+export async function sendRequest<T extends MessageType & keyof ResponseMap>(
   type: T,
   rest: Partial<Exclude<Message<T>, "type" | "request_id" | "client_id">> = {}
 ) {
   const socket = useSocket.getState().socket;
-  return socket.sendMessage<T>(type, rest);
+  return socket.sendRequest<T>(type, rest);
 }
 
 /** Send a notification; does not receive a response */
-function sendNotification<T extends MessageType>(
+export function sendNotification<T extends MessageType>(
   type: T,
   rest: Partial<Exclude<Message<T>, "type" | "request_id" | "client_id">> = {}
 ) {
@@ -171,8 +173,8 @@ function sendNotification<T extends MessageType>(
   socket.sendNotification<T>(type, rest);
 }
 
-/** Listen to notifications from the server */
-function useListener<T extends UpdateType>(
+/** Listen to _notifications_ (requests bypass this!) from the server */
+export function useListener<T extends UpdateType>(
   type: T,
   listener: Listener<T>,
   dependencies?: React.DependencyList
@@ -187,5 +189,3 @@ function useListener<T extends UpdateType>(
     };
   }, dependencies);
 }
-
-export { sendMessage, sendNotification, useListener };

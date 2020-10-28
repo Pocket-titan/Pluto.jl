@@ -17,7 +17,7 @@ function open(session::ServerSession, path::AbstractString; run_async=true, comp
             throw(NotebookIsRunningException(nb))
         end
     end
-    
+
     nb = load_notebook(tamepath(path), session.options.evaluation.run_notebook_on_load)
 
     # overwrites the notebook environment if specified

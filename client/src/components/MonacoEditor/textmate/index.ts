@@ -6,15 +6,45 @@ import {
 } from "vscode-oniguruma";
 import type { LanguageId } from "./register";
 import type { ScopeName, TextMateGrammar, ScopeNameInfo } from "./providers";
-import type { IRawTheme } from "vscode-textmate";
 import { SimpleLanguageInfoProvider } from "./providers";
 import { registerLanguages } from "./register";
 import { rehydrateRegexps } from "./configuration";
+import { GET_DEFAULT_THEME } from "../settings";
 import themes from "../themes";
-import AtomOneDarkTextmate from "./atom-one-dark";
-import defineTheme from "../define-theme";
 
-async function loadGrammars() {
+let loaded = false;
+
+export async function initMonaco() {
+  if (loaded) {
+    return;
+  }
+  loaded = true;
+
+  console.log("init'ing!");
+
+  themes.forEach((theme) => {
+    monaco.editor.defineTheme(theme.name, theme.monaco);
+  });
+
+  let languageProvider = await loadGrammars(GET_DEFAULT_THEME());
+
+  const setTheme = monaco.editor.setTheme;
+  monaco.editor.setTheme = (themeName) => {
+    console.log("themeName", themeName);
+    setTheme(themeName);
+
+    // Inject the new theme's textmate colors
+    let theme = themes.find(({ name }) => name === themeName);
+    if (theme) {
+      languageProvider.registry.setTheme(theme.textmate);
+      languageProvider.injectCSS();
+    }
+  };
+
+  return languageProvider;
+}
+
+async function loadGrammars(themeName: string) {
   const languages: monaco.languages.ILanguageExtensionPoint[] = [
     {
       id: "julia",
@@ -58,12 +88,18 @@ async function loadGrammars() {
     createOnigString,
   }) as any;
 
+  let theme = themes.find(({ name }) => name === themeName);
+
+  if (!theme) {
+    throw new Error(`Could not find theme with name: ${themeName}`);
+  }
+
   const provider = new SimpleLanguageInfoProvider({
     grammars,
     fetchGrammar,
     configurations: languages.map((language) => language.id),
     fetchConfiguration,
-    theme: AtomOneDarkTextmate,
+    theme: theme.textmate,
     onigLib,
     monaco,
   });
@@ -85,32 +121,4 @@ async function loadVSCodeOnigurumWASM(): Promise<Response | ArrayBuffer> {
   }
 
   return await response.arrayBuffer();
-}
-
-// function setupThemes() {
-//   themes.forEach(({ id, content }) => {
-//     defineTheme(id, content);
-//   });
-// }
-
-let monacoLoaded = false;
-
-export async function initMonaco() {
-  if (monacoLoaded) {
-    return;
-  }
-  monacoLoaded = true;
-
-  themes.forEach(({ id, content }) => {
-    defineTheme(id, content);
-  });
-
-  let languageProvider = await loadGrammars();
-
-  const setTheme = monaco.editor.setTheme;
-  monaco.editor.setTheme = (themeName) => {
-    setTheme(themeName);
-    languageProvider.registry.setTheme();
-    languageProvider.injectCSS();
-  };
 }
