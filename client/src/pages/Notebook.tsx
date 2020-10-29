@@ -2,13 +2,13 @@ import React, { useEffect } from "react";
 import _ from "lodash";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { sendRequest, useListener, useNotebook, useQueryParams } from "../ts";
-import { initMonaco } from "../components/MonacoEditor/textmate";
+import initMonaco from "../components/MonacoEditor/init-monaco";
 import SelectionArea from "../components/SelectionArea";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Cell from "../components/Cell";
 
-function Notebook() {
+const Notebook = () => {
   let notebook_id = useQueryParams("id")!;
   let { cells, addCells, changeCells, deleteCells, moveCells } = useNotebook();
 
@@ -183,6 +183,6 @@ function Notebook() {
       <Footer />
     </div>
   );
-}
+};
 
 export default Notebook;

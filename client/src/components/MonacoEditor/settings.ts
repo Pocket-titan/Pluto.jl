@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor";
 
+// Since we depend on some code to set the theme on window, this is a function instead of a value
 export const GET_DEFAULT_THEME = () =>
   window.__theme === "dark" ? "atom-one-dark" : "atom-one-light";
 

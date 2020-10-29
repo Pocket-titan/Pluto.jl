@@ -12,7 +12,7 @@ import {
   useListener,
 } from "../ts";
 
-function Welcome() {
+const Welcome = () => {
   let [notebooks, setNotebooks] = useState<RecentNotebook[]>([]);
 
   useEffect(() => {
@@ -131,6 +131,6 @@ function Welcome() {
       </ul>
     </div>
   );
-}
+};
 
 export default Welcome;

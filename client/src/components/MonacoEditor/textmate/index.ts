@@ -1,3 +1,5 @@
+// This code (bar a few bits) is pretty much identical to https://github.com/bolinfest/monaco-tm/,
+// the "official" solution recommended by the monaco-editor maintainers for getting textmate grammars working
 import * as monaco from "monaco-editor/esm/vs/editor/editor.api";
 import {
   createOnigScanner,
@@ -9,42 +11,9 @@ import type { ScopeName, TextMateGrammar, ScopeNameInfo } from "./providers";
 import { SimpleLanguageInfoProvider } from "./providers";
 import { registerLanguages } from "./register";
 import { rehydrateRegexps } from "./configuration";
-import { GET_DEFAULT_THEME } from "../settings";
 import themes from "../themes";
 
-let loaded = false;
-
-export async function initMonaco() {
-  if (loaded) {
-    return;
-  }
-  loaded = true;
-
-  console.log("init'ing!");
-
-  themes.forEach((theme) => {
-    monaco.editor.defineTheme(theme.name, theme.monaco);
-  });
-
-  let languageProvider = await loadGrammars(GET_DEFAULT_THEME());
-
-  const setTheme = monaco.editor.setTheme;
-  monaco.editor.setTheme = (themeName) => {
-    console.log("themeName", themeName);
-    setTheme(themeName);
-
-    // Inject the new theme's textmate colors
-    let theme = themes.find(({ name }) => name === themeName);
-    if (theme) {
-      languageProvider.registry.setTheme(theme.textmate);
-      languageProvider.injectCSS();
-    }
-  };
-
-  return languageProvider;
-}
-
-async function loadGrammars(themeName: string) {
+export async function loadGrammars(themeName: string) {
   const languages: monaco.languages.ILanguageExtensionPoint[] = [
     {
       id: "julia",

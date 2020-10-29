@@ -87,6 +87,7 @@ const Header = () => {
           <a href="./">
             <img
               src={logo}
+              alt="Pluto.jl logo"
               style={{
                 width: "auto",
                 height: "100%",

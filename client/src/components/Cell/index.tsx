@@ -40,6 +40,7 @@ async function addCell(index: number) {
     index
   );
 
+  // Zustand <333
   let unsub = useEditorRefs.subscribe(
     (
       editorRef: import("monaco-editor").editor.IStandaloneCodeEditor | null

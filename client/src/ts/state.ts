@@ -10,6 +10,7 @@ const immer = <T extends State>(
 ): StateCreator<T> => (set, get, api) =>
   config((fn) => set(produce(fn) as (state: T) => T), get, api);
 
+/** Not all properties are always defined on cells we get, so we merge 'em with this default one */
 const defaultCell: DeepPartial<Cell> = {
   // cell_id: "", // A cell should *always* come with its `cell_id`!
   input: {
@@ -42,11 +43,9 @@ const useNotebook = create<{
     cells: [],
     addCells: (cells, index = 0) => {
       set((draft) => {
-        console.log("cells", cells);
         let cellsWithDefaults = cells.map((cell) =>
           _.defaultsDeep(Object.assign({}, cell), defaultCell)
         );
-        console.log("cellsWithDefaults", cellsWithDefaults);
 
         draft.cells.splice(index, 0, ...cellsWithDefaults);
       });

@@ -51,7 +51,7 @@ include("./webserver/REPLTools.jl")
 include("./webserver/WebServer.jl")
 
 if get(ENV, "JULIA_PLUTO_SHOW_BANNER", "1") !== "0"
-@info """\n
+    @info """\n
     Welcome to Pluto $(PLUTO_VERSION_STR) 🎈
     Start a notebook server using:
 
