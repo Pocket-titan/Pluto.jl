@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 import { loadGrammars } from "./textmate";
-import { GET_DEFAULT_THEME } from "./settings";
+import { GET_DEFAULT_THEME } from "./default-settings";
 import { registerProviders } from "./features";
 import themes from "./themes";
 

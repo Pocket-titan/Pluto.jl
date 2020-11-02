@@ -141,4 +141,26 @@ const useDarkMode = create<{
   },
 }));
 
-export { useNotebook, useSelection, useEditorRefs, useDarkMode };
+type Config = {
+  [key: string]: any;
+};
+
+const useConfig = create<{
+  config: Config;
+  updateConfig: (key: string, value: any) => void;
+  saveConfig: () => void;
+}>(
+  immer((set, get) => ({
+    config: localStorage.getItem("config") || {},
+    updateConfig: (key, value) => {
+      set(({ config }) => {
+        config[key] = value;
+      });
+    },
+    saveConfig: () => {
+      localStorage.setItem("config", JSON.stringify(get().config));
+    },
+  }))
+);
+
+export { useNotebook, useSelection, useEditorRefs, useDarkMode, useConfig };

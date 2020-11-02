@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
 import { Cell, useEditorRefs, useQueryParams } from "../../ts";
-import settings, { GET_DEFAULT_THEME } from "./settings";
+import settings, { GET_DEFAULT_THEME } from "./default-settings";
 import { createActions } from "./actions";
 
 const MonacoEditor = ({

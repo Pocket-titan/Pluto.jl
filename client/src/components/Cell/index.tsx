@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 import { DraggableProvided, DraggableStateSnapshot } from "react-beautiful-dnd";
-import _ from "lodash";
-import { Add, Eye, EyeOff, Trash } from "@styled-icons/ionicons-outline";
+import { Add, Visibility, VisibilityOff, Delete } from "@styled-icons/material";
 import {
   getQueryParams,
   sendNotification,
@@ -153,7 +152,7 @@ const Cell = ({
             foldCell(cell_id, !folded);
           }}
         >
-          {folded ? <EyeOff size={22} /> : <Eye size={22} />}
+          {folded ? <VisibilityOff size={22} /> : <Visibility size={22} />}
         </FoldCell>
         <DeleteCell
           title="Delete cell"
@@ -161,7 +160,7 @@ const Cell = ({
             deleteCell(cell_id);
           }}
         >
-          <Trash size={22} />
+          <Delete size={22} />
         </DeleteCell>
       </pluto-cell>
     </Container>

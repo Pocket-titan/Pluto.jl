@@ -13,6 +13,8 @@ import { registerLanguages } from "./register";
 import { rehydrateRegexps } from "./configuration";
 import themes from "../themes";
 
+let wasmLoaded = false;
+
 export async function loadGrammars(themeName: string) {
   const languages: monaco.languages.ILanguageExtensionPoint[] = [
     {
@@ -50,8 +52,12 @@ export async function loadGrammars(themeName: string) {
     return rehydrateRegexps(rawConfiguration);
   };
 
-  const data: ArrayBuffer | Response = await loadVSCodeOnigurumWASM();
-  await loadWASM(data);
+  if (!wasmLoaded) {
+    const data: ArrayBuffer | Response = await loadVSCodeOnigurumWASM();
+    await loadWASM(data);
+    wasmLoaded = true;
+  }
+
   const onigLib = Promise.resolve({
     createOnigScanner,
     createOnigString,
