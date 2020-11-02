@@ -135,6 +135,7 @@ const useDarkMode = create<{
     set({
       mode,
     });
+
     monaco.editor.setTheme(
       mode === "dark" ? "atom-one-dark" : "atom-one-light"
     );
@@ -142,7 +143,16 @@ const useDarkMode = create<{
 }));
 
 type Config = {
+  editor: {
+    font_size: number;
+  };
   [key: string]: any;
+};
+
+let defaultConfig: Config = {
+  editor: {
+    font_size: 16,
+  },
 };
 
 const useConfig = create<{
@@ -151,7 +161,17 @@ const useConfig = create<{
   saveConfig: () => void;
 }>(
   immer((set, get) => ({
-    config: localStorage.getItem("config") || {},
+    config: (() => {
+      let storedConfig = localStorage.getItem("config");
+
+      if (storedConfig) {
+        try {
+          return JSON.parse(storedConfig);
+        } catch {}
+      }
+
+      return defaultConfig;
+    })(),
     updateConfig: (key, value) => {
       set(({ config }) => {
         config[key] = value;

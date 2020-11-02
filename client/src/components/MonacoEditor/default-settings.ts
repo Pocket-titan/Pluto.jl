@@ -27,7 +27,7 @@ const settings: monaco.editor.IStandaloneEditorConstructionOptions = {
   autoClosingQuotes: "always",
   autoClosingOvertype: "always",
   matchBrackets: "near",
-  fontSize: 16,
+  fontSize: 17,
   renderLineHighlightOnlyWhenFocus: true,
   renderIndentGuides: false,
   overviewRulerLanes: 0,

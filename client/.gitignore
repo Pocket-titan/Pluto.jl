@@ -9,7 +9,7 @@
 /coverage
 
 # production
-/build
+# /build # yes i am committing my build folder
 
 # misc
 .DS_Store

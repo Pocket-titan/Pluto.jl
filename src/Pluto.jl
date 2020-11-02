@@ -45,7 +45,7 @@ include("./evaluation/Run.jl")
 
 include("./webserver/MsgPack.jl")
 include("./webserver/SessionActions.jl")
-include("./webserver/Static.jl")
+include("./webserver/NewStatic.jl")
 include("./webserver/Dynamic.jl")
 include("./webserver/REPLTools.jl")
 include("./webserver/WebServer.jl")

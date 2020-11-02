@@ -2,6 +2,10 @@ import HTTP
 import Markdown: htmlesc
 import UUIDs: UUID
 
+function is_authenticated(session::ServerSession, request::HTTP.Request)
+    return true
+end
+
 "Attempts to find the MIME pair corresponding to the extension of a filename. Defaults to `text/plain`."
 function mime_fromfilename(filename)
     # This bad boy is from: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
@@ -11,17 +15,37 @@ function mime_fromfilename(filename)
 end
 
 function asset_response(path)
-  if !isfile(path) && !endswith(path, ".html")
-      return asset_response(path * ".html")
+  if isdir(path)
+    index = joinpath(path, "index.html")
+    if isfile(index)
+        response = HTTP.Response(200, body=read(index))
+        push!(response.headers, "Access-Control-Allow-Origin" => "*")
+        push!(response.headers, "Content-Type" => string(mime_fromfilename(path)))
+        return response
+    else
+        @show return HTTP.Response(501)
+    end
+  elseif isfile(path)
+    response = HTTP.Response(200, read(path, String))
+    push!(response.headers, "Access-Control-Allow-Origin" => "*")
+    push!(response.headers, "Content-Type" => string(mime_fromfilename(path)))
+    return response
+  else
+    @show return HTTP.Response(404)
   end
-  try
-      @assert isfile(path)
-      response = HTTP.Response(200, read(path, String))
-      push!(response.headers, "Content-Type" => string(mime_fromfilename(path)))
-      response
-  catch e
-      HTTP.Response(404, "Not found!")
-  end
+
+  # if !isfile(path) && !endswith(path, ".html")
+  #     return asset_response(path * ".html")
+  # end
+  # try
+  #     @assert isfile(path)
+  #     response = HTTP.Response(200, read(path, String))
+  #     push!(response.headers, "Access-Control-Allow-Origin" => "*")
+  #     push!(response.headers, "Content-Type" => string(mime_fromfilename(path)))
+  #     response
+  # catch e
+  #     HTTP.Response(404, "Not found!")
+  # end
 end
 
 function notebook_redirect_response(notebook; home_url="./")
@@ -31,7 +55,7 @@ function notebook_redirect_response(notebook; home_url="./")
 end
 
 function serve_index(request::HTTP.Request)
-  return request::HTTP.Request -> asset_response(
+  return asset_response(
     normpath(
       project_relative_path(
         "client",
@@ -80,7 +104,18 @@ function http_router_for(session::ServerSession)
     notebook_redirect_response(SessionActions.new(session))
   end
 
+  function serve_asset(request::HTTP.Request)
+    uri = HTTP.URI(request.target)
+
+    filepath = project_relative_path("client", "build", relpath(HTTP.unescapeuri(uri.path), "/"))
+    asset_response(filepath)
+  end
+
+  HTTP.@register(router, "GET", "/", serve_index)
+  HTTP.@register(router, "GET", "/edit", serve_index)
   HTTP.@register(router, "GET", "/open", serve_openfile)
   HTTP.@register(router, "GET", "/new", serve_newfile)
-  HTTP.@register(router, "GET", "/*", serve_index)
+  HTTP.@register(router, "GET", "/*", serve_asset)
+
+  return router
 end
