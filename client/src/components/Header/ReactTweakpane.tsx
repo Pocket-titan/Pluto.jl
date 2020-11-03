@@ -171,6 +171,9 @@ const ReactTweakpane = ({
         width: 275,
         // width: "100%",
       }}
+      onBlur={(event) => {
+        console.log("event", event);
+      }}
     />
   );
 };
