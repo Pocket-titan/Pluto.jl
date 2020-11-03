@@ -81,3 +81,17 @@ export function reorder<T extends unknown>(
 
   return result;
 }
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: DeepPartial<T[P]>;
+};
+
+type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
+
+/** `Object.entries` but returns `[key: keyof T, value: T[keyof T]]` instead of
+ * `[key: string, value: T[keyof T]]` */
+export function typedEntries<T>(obj: T): Entries<T> {
+  return Object.entries(obj) as any;
+}

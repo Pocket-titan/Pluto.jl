@@ -4,7 +4,7 @@ import * as monaco from "monaco-editor";
 export const GET_DEFAULT_THEME = () =>
   window.__theme === "dark" ? "atom-one-dark" : "atom-one-light";
 
-const settings: monaco.editor.IStandaloneEditorConstructionOptions = {
+const default_settings: monaco.editor.IStandaloneEditorConstructionOptions = {
   language: "julia",
   minimap: {
     enabled: false,
@@ -38,4 +38,4 @@ const settings: monaco.editor.IStandaloneEditorConstructionOptions = {
   },
 };
 
-export default settings;
+export default default_settings;

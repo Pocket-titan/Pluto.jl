@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as monaco from "monaco-editor";
-import { Cell, useEditorRefs, useQueryParams } from "../../ts";
-import settings, { GET_DEFAULT_THEME } from "./default-settings";
+import { Cell, useConfig, useEditorRefs, useQueryParams } from "../../ts";
+import default_settings, { GET_DEFAULT_THEME } from "./monaco-settings";
 import { createActions } from "./actions";
 
 const MonacoEditor = ({
@@ -24,10 +24,13 @@ const MonacoEditor = ({
       new monaco.Uri().with({ path: cell_id })
     );
 
+    let config = useConfig.getState().config;
+
     editor.current = monaco.editor.create(containerElement.current!, {
       model,
       theme: GET_DEFAULT_THEME(),
-      ...settings,
+      ...default_settings,
+      fontSize: config.editor.font_size,
     });
 
     useEditorRefs.getState().setEditorRef(cell_id, editor.current);

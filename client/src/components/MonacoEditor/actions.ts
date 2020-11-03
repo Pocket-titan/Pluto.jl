@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 import { KeyCode, KeyMod } from "monaco-editor";
-import { sendNotification } from "../../ts";
+import { sendNotification } from "ts/socket";
 
 export function createActions(notebook_id: string, cell_id: string) {
   const actions: monaco.editor.IActionDescriptor[] = [

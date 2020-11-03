@@ -9,19 +9,6 @@ const StyledSettings = styled.div`
   cursor: pointer;
 `;
 
-const options = {
-  Text: {
-    "font-size": {
-      value: 16,
-      params: {
-        min: 8,
-        max: 24,
-        step: 1,
-      },
-    },
-  },
-};
-
 const Settings = () => {
   const theme = useTheme();
   const [hidden, setHidden] = useState(true);
@@ -57,7 +44,7 @@ const Settings = () => {
                 ...props,
               }}
             >
-              <ReactTweakpane hidden={hidden} options={options} />
+              <ReactTweakpane hidden={hidden} />
             </animated.div>
           )
       )}

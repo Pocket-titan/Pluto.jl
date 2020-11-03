@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from "react";
+import _ from "lodash";
+import * as monaco from "monaco-editor";
 import styled, { css } from "styled-components/macro";
 import Tweakpane from "tweakpane";
+import { useConfig, typedEntries, useEditorRefs } from "../../ts";
+import type { Config } from "../../ts";
 
 const Container = styled.div`
   box-shadow: 3px 3px 8px hsla(0, 0%, 0%, 0.1), 0px 0px 9px hsla(0, 0%, 0%, 0.3);
@@ -50,22 +54,63 @@ const Container = styled.div`
         `};
 `;
 
-type Options = {
-  [folderName: string]: {
-    [optionName: string]: {
-      value?: any;
-      params?: any;
+/** Tweakpane Params for inputs, see: https://cocopon.github.io/tweakpane/input.html */
+type Params<T> = {
+  index?: number;
+  label?: string;
+  options?: {
+    text: string;
+    value: T;
+  };
+  presetKey?: string;
+} & (T extends number
+  ? {
+      min?: number;
+      max?: number;
+      step?: number;
+      input?: "color" | "color.rgb" | "color.rgba";
+    }
+  : T extends string
+  ? {}
+  : T extends boolean
+  ? {}
+  : {});
+
+type ConfigMap = {
+  [K1 in keyof Config]: {
+    [K2 in keyof Config[K1]]: {
+      params: Params<Config[K1][K2]>;
+      onChange?: (value: any) => void;
     };
   };
 };
 
+const configMap: ConfigMap = {
+  editor: {
+    font_size: {
+      params: {
+        // min: 8,
+        // max: 24,
+        step: 1,
+        label: "font size",
+      },
+      onChange: (value: number) => {
+        console.log("value", value);
+        Object.values(useEditorRefs.getState().editors).forEach((editor) => {
+          editor.updateOptions({
+            fontSize: value,
+          });
+        });
+      },
+    },
+  },
+};
+
 const ReactTweakpane = ({
-  options = {},
   expanded = true,
   hidden = false,
   title,
 }: {
-  options: Options;
   expanded?: boolean;
   hidden?: boolean;
   title?: string;
@@ -74,21 +119,37 @@ const ReactTweakpane = ({
   const tweakpane = useRef<Tweakpane>();
 
   useEffect(() => {
+    let { config, saveConfig, updateConfig } = useConfig.getState();
+
     tweakpane.current = new Tweakpane({
       container: containerElement.current,
       expanded,
       title,
     });
 
-    Object.entries(options).forEach(([folderName, option]) => {
-      Object.entries(option).forEach(([optionName, config]) => {
-        tweakpane.current!.addInput(
+    typedEntries(config).forEach(([folderName, option]) => {
+      let folder = tweakpane.current!.addFolder({
+        title: _.capitalize(_.words(folderName.toLowerCase()).join(" ")),
+      });
+
+      typedEntries(option).forEach(([optionName, value]) => {
+        const { params, onChange } = configMap[folderName][optionName];
+
+        let input = folder.addInput(
           {
-            [optionName]: config.value,
+            [optionName]: value,
           },
           optionName,
-          config.params
+          params
         );
+
+        input.on("change", (value: any) => {
+          updateConfig(folderName, {
+            [optionName]: value,
+          });
+          onChange && onChange(value);
+          saveConfig();
+        });
       });
     });
 
@@ -107,7 +168,8 @@ const ReactTweakpane = ({
       ref={(ref) => ref && (containerElement.current = ref)}
       style={{
         height: "100%",
-        width: "100%",
+        width: 275,
+        // width: "100%",
       }}
     />
   );

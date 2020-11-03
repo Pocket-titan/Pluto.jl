@@ -1,5 +1,5 @@
 import * as monaco from "monaco-editor";
-import { sendRequest, getQueryParams } from "../../../ts";
+import { sendRequest, getQueryParams } from "ts";
 import latexSymbols from "./latex-symbols";
 
 const snippets: { [key: string]: string } = {

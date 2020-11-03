@@ -3,8 +3,8 @@ import React, { useEffect, useCallback } from "react";
 export const DocumentEvent = <K extends keyof DocumentEventMap>({
   handler,
   name,
-  passive = false,
   capture = false,
+  passive = undefined,
   targets = undefined,
 }: {
   handler: (event: DocumentEventMap[K]) => void;
@@ -24,7 +24,7 @@ export const DocumentEvent = <K extends keyof DocumentEventMap>({
         }
       }
 
-      if (!passive) {
+      if (passive === false) {
         event.preventDefault();
       }
 
@@ -39,7 +39,7 @@ export const DocumentEvent = <K extends keyof DocumentEventMap>({
     return () => {
       document.removeEventListener(name, fn, { capture });
     };
-  }, [fn, name, capture]);
+  }, [fn, name, capture, passive]);
 
   return null;
 };

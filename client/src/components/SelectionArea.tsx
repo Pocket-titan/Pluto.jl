@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTheme } from "styled-components/macro";
 import { DocumentEvent } from "./Elements";
 import { useSelection } from "../ts";
@@ -77,12 +77,14 @@ const getSelectedCells = (selection: Area) => {
 
 const SelectionArea = () => {
   const theme = useTheme();
-  const [selection, setSelection] = useState<Area>();
+  const isSelecting = useRef(false);
+  const [selection, setSelection] = useState<Area | null>(null);
   const selectCells = useSelection((state) => state.selectCells);
 
   return (
     <>
       <DocumentEvent
+        passive
         name="mousedown"
         targets={(tags) => {
           return !tags.some(
@@ -91,47 +93,52 @@ const SelectionArea = () => {
           );
         }}
         handler={({ pageX: x, pageY: y }) => {
+          isSelecting.current = true;
           selectCells([]);
-
           setSelection({
             start: { x, y },
             end: { x, y },
           });
         }}
       />
-      <DocumentEvent
-        passive
-        name="mousemove"
-        handler={({ pageX: x, pageY: y }) => {
-          if (!selection) {
-            return;
-          }
+      {selection && (
+        <DocumentEvent
+          passive
+          name="mousemove"
+          handler={({ pageX: x, pageY: y }) => {
+            let newSelection = {
+              ...selection,
+              end: { x, y },
+            };
 
-          let newSelection = {
-            ...selection,
-            end: { x, y },
-          };
-
-          selectCells(getSelectedCells(newSelection));
-          setSelection(newSelection);
-        }}
-      />
+            selectCells(getSelectedCells(newSelection));
+            setSelection(newSelection);
+          }}
+        />
+      )}
+      {selection && (
+        <DocumentEvent
+          passive
+          name="mouseup"
+          handler={(event) => {
+            isSelecting.current = false;
+            setSelection(null);
+          }}
+        />
+      )}
       <DocumentEvent
-        passive
-        name="mouseup"
-        handler={(event) => {
-          setSelection(undefined);
-        }}
-      />
-      <DocumentEvent
-        passive
         name="selectstart"
         handler={(event) => {
-          if (selection) {
+          if (isSelecting.current) {
+            // Even if we are doing `preventDefault`, we would still like the current
+            // selection (if there is one) to be cleared
+            let selection = window.getSelection();
+            selection?.removeAllRanges();
             event.preventDefault();
           }
         }}
       />
+
       {selection && (
         <div
           style={{
