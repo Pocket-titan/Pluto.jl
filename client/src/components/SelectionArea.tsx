@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useTheme } from "styled-components/macro";
 import { DocumentEvent } from "./Elements";
 import { useSelection } from "../ts";
@@ -86,11 +86,13 @@ const SelectionArea = () => {
       <DocumentEvent
         passive
         name="mousedown"
-        targets={(tags) => {
-          return !tags.some(
-            (tag) =>
-              tag === "PLUTO-CELL" || tag === "HEADER" || tag === "FOOTER"
-          );
+        targets={(elements) => {
+          return !elements
+            .map((element) => element.tagName)
+            .some(
+              (tag) =>
+                tag === "PLUTO-CELL" || tag === "HEADER" || tag === "FOOTER"
+            );
         }}
         handler={({ pageX: x, pageY: y }) => {
           isSelecting.current = true;

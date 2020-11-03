@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { animated, useTransition } from "react-spring";
 import styled, { useTheme } from "styled-components/macro";
 import { Settings as SettingsIcon } from "@styled-icons/material";
+import { DocumentEvent } from "components/Elements";
 import ReactTweakpane from "./ReactTweakpane";
 
 const StyledSettings = styled.div`
@@ -22,7 +23,7 @@ const Settings = () => {
   });
 
   return (
-    <StyledSettings>
+    <StyledSettings className="Settings">
       <SettingsIcon
         size={24}
         style={{
@@ -47,6 +48,28 @@ const Settings = () => {
               <ReactTweakpane hidden={hidden} />
             </animated.div>
           )
+      )}
+      {!hidden && (
+        <DocumentEvent
+          passive
+          name="mousedown"
+          targets={(elements) => {
+            return !elements
+              .map((tag) => tag.className)
+              .filter((className) => !!className && className.length > 0)
+              .some(
+                (className) =>
+                  className.includes("Settings") ||
+                  className.includes("ThemeToggle")
+              );
+          }}
+          handler={(event) => {
+            // "Main" mousebutton aka left (usually)
+            if (event.button === 0) {
+              setHidden(true);
+            }
+          }}
+        />
       )}
     </StyledSettings>
   );

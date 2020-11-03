@@ -1,25 +1,23 @@
-import React, { useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 
 export const DocumentEvent = <K extends keyof DocumentEventMap>({
   handler,
   name,
-  capture = false,
-  passive = undefined,
   targets = undefined,
+  passive = undefined,
+  capture = false,
 }: {
   handler: (event: DocumentEventMap[K]) => void;
   name: K;
+  targets?: (elements: Element[]) => boolean;
   passive?: boolean;
   capture?: boolean;
-  targets?: (tags: string[]) => boolean;
 }) => {
   let fn = useCallback(
     (event: DocumentEventMap[K]) => {
       if (targets) {
-        let tagNames: string[] = (event.composedPath() as any).map(
-          (target: any) => target.tagName
-        );
-        if (!targets(tagNames)) {
+        let path = event.composedPath() as Element[];
+        if (!targets(path)) {
           return;
         }
       }

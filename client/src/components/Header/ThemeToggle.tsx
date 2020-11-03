@@ -46,6 +46,7 @@ const ThemeToggle = () => {
 
   return (
     <StyledToggle
+      className="ThemeToggle"
       onChange={({ target: { checked } }) => {
         window.__setPreferredTheme(checked ? "dark" : "light");
       }}

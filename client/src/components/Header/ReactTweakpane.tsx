@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import _ from "lodash";
-import * as monaco from "monaco-editor";
 import styled, { css } from "styled-components/macro";
 import Tweakpane from "tweakpane";
 import { useConfig, typedEntries, useEditorRefs } from "../../ts";
@@ -12,6 +11,10 @@ const Container = styled.div`
 
   & * {
     transition: var(--transition);
+  }
+
+  & > div > div {
+    font-size: 13px !important;
   }
 
   ${({ theme }) =>
@@ -95,7 +98,6 @@ const configMap: ConfigMap = {
         label: "font size",
       },
       onChange: (value: number) => {
-        console.log("value", value);
         Object.values(useEditorRefs.getState().editors).forEach((editor) => {
           editor.updateOptions({
             fontSize: value,
@@ -166,13 +168,11 @@ const ReactTweakpane = ({
   return (
     <Container
       ref={(ref) => ref && (containerElement.current = ref)}
+      className="ReactTweakpane"
       style={{
         height: "100%",
         width: 275,
         // width: "100%",
-      }}
-      onBlur={(event) => {
-        console.log("event", event);
       }}
     />
   );
