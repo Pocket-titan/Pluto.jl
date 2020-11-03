@@ -52,7 +52,10 @@ class Socket {
   constructor(port: number = 1234) {
     let socket = createWebsocket(() => {
       let { protocol, hostname } = window.location;
-      return `${protocol === "https:" ? "wss" : "ws"}://${hostname}:${port}/`;
+      let isNgrok = hostname.includes("ngrok.io");
+      return `${protocol === "https:" ? "wss" : "ws"}://${hostname}${
+        isNgrok ? "/" : `:${port}/`
+      }`;
     });
 
     socket.onmessage = async (event) => {

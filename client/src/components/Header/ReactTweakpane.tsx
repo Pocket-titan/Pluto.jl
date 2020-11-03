@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from "react";
 import _ from "lodash";
 import styled, { css } from "styled-components/macro";
 import Tweakpane from "tweakpane";
-import { useConfig, typedEntries, useEditorRefs } from "../../ts";
-import type { Config } from "../../ts";
+import { useConfig, typedEntries, useEditorRefs } from "ts";
+import type { Config } from "ts";
 
 const Container = styled.div`
   box-shadow: 3px 3px 8px hsla(0, 0%, 0%, 0.1), 0px 0px 9px hsla(0, 0%, 0%, 0.3);

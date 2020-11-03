@@ -147,7 +147,7 @@ const Cell = ({
           <Add size={22} />
         </AddCell>
         <FoldCell
-          title="Show/hide code"
+          title={folded ? "Show code" : "Hide code"}
           onClick={(event) => {
             foldCell(cell_id, !folded);
           }}
