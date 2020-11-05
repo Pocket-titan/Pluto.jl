@@ -52,6 +52,7 @@ export async function navigate(route: string) {
       process.env.NODE_ENV === "development"
         ? res_url.href.replace("1234", "3000")
         : res_url.href;
+
     window.location.href = redirect_url;
   } catch {}
 }

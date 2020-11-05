@@ -40,11 +40,6 @@ const MonacoEditor = ({
       editor.current.addAction(action);
     }
 
-    // If we leave the editor, reset our selection in here
-    editor.current.onDidBlurEditorText(() => {
-      editor.current?.setSelection(new monaco.Range(0, 0, 0, 0));
-    });
-
     editor.current.onDidContentSizeChange(({ contentHeight }) => {
       if (contentHeight !== height) {
         setHeight(contentHeight);

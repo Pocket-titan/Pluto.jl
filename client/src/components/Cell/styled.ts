@@ -137,7 +137,7 @@ const Shoulder = styled.div<{ isDragging: boolean; isDropAnimating: boolean }>`
   position: absolute;
   top: 0;
   left: -50vw;
-  width: 150vw;
+  width: 50vw;
   height: 100%;
   z-index: 0;
 
@@ -214,6 +214,13 @@ const DeleteCell = styled(Button)`
   transform: translate(100%, 0%);
   right: 0;
   top: 0;
+
+  &:hover {
+    * {
+      color: ${({ theme }) =>
+        theme.isDark ? "rgb(238,129,119)" : "rgb(230,106,96)"};
+    }
+  }
 `;
 
 export { TrafficLight, Shoulder, Container, AddCell, FoldCell, DeleteCell };

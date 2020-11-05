@@ -52,7 +52,11 @@ const completionItemProvider: monaco.languages.CompletionItemProvider = {
     if (status === "👍") {
       return {
         ...item,
-        documentation: doc,
+        documentation: {
+          value: doc,
+          isTrusted: true,
+          supportThemeIcons: true,
+        },
       };
     }
   },

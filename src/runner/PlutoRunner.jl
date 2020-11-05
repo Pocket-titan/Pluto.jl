@@ -30,7 +30,7 @@ current_module = Main
 
 function set_current_module(newname)
     # Revise.jl support
-    if isdefined(current_module, :Revise) && 
+    if isdefined(current_module, :Revise) &&
         isdefined(current_module.Revise, :revise) && current_module.Revise.revise isa Function &&
         isdefined(current_module.Revise, :revision_queue) && current_module.Revise.revision_queue isa AbstractSet
 
@@ -38,10 +38,10 @@ function set_current_module(newname)
             current_module.Revise.revise()
         end
     end
-    
+
     global iocontext = IOContext(iocontext, :module => current_module)
     global iocontext_compact = IOContext(iocontext_compact, :module => current_module)
-    
+
     global current_module = getfield(Main, newname)
 end
 
@@ -55,7 +55,7 @@ function formatted_result_of(id::UUID, ends_with_semicolon::Bool)::NamedTuple{(:
 end
 
 """
-Move some of the globals over from one workspace to another. This is how Pluto "deletes" globals - it doesn't, it just executes your new code in a new module where those globals are not defined. 
+Move some of the globals over from one workspace to another. This is how Pluto "deletes" globals - it doesn't, it just executes your new code in a new module where those globals are not defined.
 
 Notebook code does run in `Main` - it runs in workspace modules. Every time that you run cells, a new module is created, called `Main.workspace123` with `123` an increasing number.
 
@@ -140,7 +140,7 @@ function delete_toplevel_methods(f::Function, cell_id::UUID)::Bool
     # if `f` is an extension to an external function, and we defined a method that overrides a method, for example,
     # we define `Base.isodd(n::Integer) = rand(Bool)`, which overrides the existing method `Base.isodd(n::Integer)`
     # calling `Base.delete_method` on this method won't bring back the old method, because our new method still exists in the method table, and it has a world age which is newer than the original. (our method has a deleted_world value set, which disables it)
-    # 
+    #
     # To solve this, we iterate again, and _re-enable any methods that were hidden in this way_, by adding them again to the method table with an even newer`primary_world`.
     if !isempty(deleted_sigs)
         to_insert = Method[]
@@ -225,7 +225,7 @@ const imagemimes = [MIME"image/svg+xml"(), MIME"image/png"(), MIME"image/jpg"(),
 # in order of coolness
 # text/plain always matches
 """
-The MIMEs that Pluto supports, in order of how much I like them. 
+The MIMEs that Pluto supports, in order of how much I like them.
 
 `text/plain` should always match - the difference between `show(::IO, ::MIME"text/plain", x)` and `show(::IO, x)` is an unsolved mystery.
 """
@@ -330,15 +330,15 @@ function show_richest(io::IO, @nospecialize(x); onlyhtml::Bool=false)::MIME
     mime = Iterators.filter(m -> Base.invokelatest(showable, m, x), allmimes) |> first
     t = typeof(x)
 
-    # types that have no specialized show methods (their fallback is text/plain) are displayed using Pluto's interactive tree viewer. 
+    # types that have no specialized show methods (their fallback is text/plain) are displayed using Pluto's interactive tree viewer.
     # this is how we check whether this display method is appropriate:
-    isstruct = 
-        mime isa MIME"text/plain" && 
+    isstruct =
+        mime isa MIME"text/plain" &&
         t isa DataType &&
-        # there are two ways to override the plaintext show method: 
+        # there are two ways to override the plaintext show method:
         which(show, (IO, MIME"text/plain", t)) === struct_showmethod_mime &&
         which(show, (IO, t)) === struct_showmethod
-    
+
     if isstruct
         show_struct(io, x)
         return MIME"application/vnd.pluto.tree+xml"()
@@ -363,14 +363,14 @@ function show_richest(io::IO, @nospecialize(x); onlyhtml::Bool=false)::MIME
         if onlyhtml || mime isa MIME"text/latex"
             # see onlyhtml description in docstring
             if mime isa MIME"text/plain"
-                withtag(io, :pre) do 
+                withtag(io, :pre) do
                     htmlesc(io, repr(mime, x; context=iocontext_compact))
                 end
             elseif mime isa MIME"text/latex"
                 # Wrapping with `\text{}` allows for LaTeXStrings with mixed text/math
                 texed = repr(mime, x)
                 html(io, Markdown.LaTeX("\\text{$texed}"))
-            else                
+            else
                 show(io, mime, x)
             end
             return MIME"text/html"()
@@ -447,12 +447,12 @@ function show(io::IO, ::MIME"application/vnd.pluto.tree+xml", x::AbstractArray{<
         from_end = tree_display_limit > 20 ? 10 : 1
 
         show_array_elements(io, indices[firsti:firsti-1+tree_display_limit-from_end], x)
-        
+
         print(io, "<r><more></more></r>")
-        
+
         show_array_elements(io, indices[end+1-from_end:end], x)
     end
-    
+
     print(io, "</jlarray>")
     print(io, "</jltree>")
 end
@@ -478,7 +478,7 @@ function show(io::IO, ::MIME"application/vnd.pluto.tree+xml", x::AbstractDict{<:
         end
         row_index += 1
     end
-    
+
     print(io, "</jldict>")
     print(io, "</jltree>")
 end
@@ -508,7 +508,7 @@ function show_struct(io::IO, @nospecialize(x))
         print(io, """<jltree class="collapsed" onclick="onjltreeclick(this, event)">""")
         show(io, t)
         print(io, "<jlstruct>")
-        
+
         if !Base.show_circular(io, x)
             recur_io = IOContext(io, Pair{Symbol,Any}(:SHOWN_SET, x),
                                  Pair{Symbol,Any}(:typeinfo, Any))
@@ -621,7 +621,7 @@ binding_from(other, workspace::Module=current_module) = error("Invalid @var synt
 function doc_fetcher(query, workspace::Module=current_module)
     try
         binding = binding_from(Meta.parse(query), workspace)::Docs.Binding
-        (repr(MIME"text/html"(), Docs.doc(binding)), :👍)
+        (repr(MIME"text/markdown"(), Docs.doc(binding)), :👍)
     catch ex
         (nothing, :👎)
     end
@@ -660,7 +660,7 @@ end
 
 import Base: show
 function show(io::IO, ::MIME"text/html", bond::Bond)
-    withtag(io, :bond, :def => bond.defines) do 
+    withtag(io, :bond, :def => bond.defines) do
         show(io, MIME"text/html"(), bond.element)
     end
 end
