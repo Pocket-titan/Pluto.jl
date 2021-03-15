@@ -1,4 +1,4 @@
-import UUIDs: uuid1
+import UUIDs:uuid1
 
 import TableIOInterface: get_example_code, is_extension_supported
 
@@ -8,8 +8,8 @@ const responses = Dict{Symbol,Function}()
 Base.@kwdef struct ClientRequest
     session::ServerSession
     notebook::Union{Nothing,Notebook}
-    body::Any=nothing
-    initiator::Union{Initiator,Nothing}=nothing
+    body::Any = nothing
+    initiator::Union{Initiator,Nothing} = nothing
 end
 
 require_notebook(r::ClientRequest) = if r.notebook === nothing
@@ -73,7 +73,7 @@ Besides `:update_notebook`, you will find more functions in [`responses`](@ref) 
     Two other meanings of _state_ could be:
     2. The reactivity data: the parsed AST (`Expr`) of each cell, which variables are defined or referenced by which cells, in what order will cells run?
     3. The state of the Julia process: i.e. which variables are defined, which packages are imported, etc.
-    
+
     The first two (1 & 2) are stored in a [`Notebook`](@ref) struct, remembered by the server process (Julia). (In fact, (2) is entirely described by (1), but we store it for performance reasons.) I included (3) for completeness, but it is not stored by us, we hope to control and minimize (3) by keeping track of (1) and (2).
 
 """
@@ -107,7 +107,7 @@ function notebook_to_js(notebook::Notebook)
                 "running" => cell.running,
                 "errored" => cell.errored,
                 "runtime" => ismissing(cell.runtime) ? nothing : cell.runtime,
-                "output" => Dict(                
+                "output" => Dict(
                     "last_run_timestamp" => cell.last_run_timestamp,
                     "persist_js_state" => cell.persist_js_state,
                     "mime" => cell.repr_mime,
@@ -120,7 +120,7 @@ function notebook_to_js(notebook::Notebook)
         "bonds" => Dict{String,Dict{String,Any}}(
             String(key) => Dict("value" => bondvalue.value)
         for (key, bondvalue) in notebook.bonds),
-    )
+)
 end
 
 """
@@ -155,7 +155,7 @@ function send_notebook_changes!(🙋::ClientRequest; commentary::Any=nothing)
 end
 
 "Like `deepcopy`, but anything onther than `Dict` gets a shallow (reference) copy."
-function deep_enough_copy(d::Dict{A,B}) where {A, B}
+function deep_enough_copy(d::Dict{A,B}) where {A,B}
     Dict{A,B}(
         k => deep_enough_copy(v)
         for (k, v) in d
@@ -180,7 +180,7 @@ const no_changes = Changed[]
 
 
 const effects_of_changed_state = Dict(
-    "path" => function(; request::ClientRequest, patch::Firebasey.ReplacePatch)
+    "path" => function (; request::ClientRequest, patch::Firebasey.ReplacePatch)
         newpath = tamepath(patch.value)
         # SessionActions.move(request.session, request.notebook, newpath)
 
@@ -193,13 +193,13 @@ const effects_of_changed_state = Dict(
         end
         return no_changes
     end,
-    "in_temp_dir" => function(; _...) no_changes end,
+    "in_temp_dir" => function (; _...) no_changes end,
     "cell_inputs" => Dict(
-        Wildcard() => function(cell_id, rest...; request::ClientRequest, patch::Firebasey.JSONPatch)
+        Wildcard() => function (cell_id, rest...; request::ClientRequest, patch::Firebasey.JSONPatch)
             Firebasey.applypatch!(request.notebook, patch)
 
             if length(rest) == 0
-                [CodeChanged, FileChanged]
+    [CodeChanged, FileChanged]
             elseif length(rest) == 1 && Symbol(rest[1]) == :code
                 request.notebook.cells_dict[UUID(cell_id)].parsedcode = nothing
                 [CodeChanged, FileChanged]
@@ -208,12 +208,12 @@ const effects_of_changed_state = Dict(
             end
         end,
     ),
-    "cell_order" => function(; request::ClientRequest, patch::Firebasey.ReplacePatch)
+    "cell_order" => function (; request::ClientRequest, patch::Union{Firebasey.ReplacePatch,Firebasey.AddPatch})
         Firebasey.applypatch!(request.notebook, patch)
         [FileChanged]
     end,
     "bonds" => Dict(
-        Wildcard() => function(name; request::ClientRequest, patch::Firebasey.JSONPatch)
+        Wildcard() => function (name; request::ClientRequest, patch::Firebasey.JSONPatch)
             name = Symbol(name)
             Firebasey.applypatch!(request.notebook, patch)
             set_bond_value_reactive(
@@ -231,10 +231,18 @@ const effects_of_changed_state = Dict(
 
 
 responses[:update_notebook] = function response_update_notebook(🙋::ClientRequest)
-    require_notebook(🙋)
+        require_notebook(🙋)
     try
         notebook = 🙋.notebook
         patches = (Base.convert(Firebasey.JSONPatch, update) for update in 🙋.body["updates"])
+
+        for patch in patches
+            # If an AddPatch comes in that adds to an Array, it will have a path of ["field", index]
+            # but we need to increment that index b/c of JS
+            if patch.path isa Vector && length(patch.path) == 2 && patch.path[2] isa Integer
+                patch.path[2] = patch.path[2] + 1
+            end
+        end
 
         if length(patches) == 0
             send_notebook_changes!(🙋)
@@ -254,7 +262,7 @@ responses[:update_notebook] = function response_update_notebook(🙋::ClientRequ
 
         for patch in patches
             (mutator, matches, rest) = trigger_resolver(effects_of_changed_state, patch.path)
-            
+
             current_changes = if isempty(rest) && applicable(mutator, matches...)
                 mutator(matches...; request=🙋, patch=patch)
             else
@@ -276,10 +284,10 @@ responses[:update_notebook] = function response_update_notebook(🙋::ClientRequ
         if FileChanged ∈ changes && CodeChanged ∉ changes
             save_notebook(notebook)
         end
-    
-        send_notebook_changes!(🙋; commentary=Dict(:update_went_well => :👍))    
+
+        send_notebook_changes!(🙋; commentary=Dict(:update_went_well => :👍))
     catch ex
-        @error "Update notebook failed"  🙋.body["updates"] exception=(ex, stacktrace(catch_backtrace()))
+        @error "Update notebook failed"  🙋.body["updates"] exception = (ex, stacktrace(catch_backtrace()))
         response = Dict(
             :update_went_well => :👎,
             :why_not => sprint(showerror, ex),
@@ -290,24 +298,28 @@ responses[:update_notebook] = function response_update_notebook(🙋::ClientRequ
 end
 
 function trigger_resolver(anything, path, values=[])
-	(value=anything, matches=values, rest=path)
+	(value = anything, matches = values, rest = path)
 end
 function trigger_resolver(resolvers::Dict, path, values=[])
 	if isempty(path)
 		throw(BoundsError("resolver path ends at Dict with keys $(keys(resolver))"))
 	end
-	
+
 	segment = first(path)
-	rest = path[firstindex(path)+1:end]
+	rest = path[firstindex(path) + 1:end]
 	for (key, resolver) in resolvers
 		if key isa Wildcard
 			continue
 		end
 		if key == segment
-			return trigger_resolver(resolver, rest, values)
+			if rest isa Array && length(rest) == 1 && rest[1] isa Integer
+                return trigger_resolver(resolver, [], values)
+            end
+
+            return trigger_resolver(resolver, rest, values)
 		end
 	end
-	
+
 	if haskey(resolvers, Wildcard())
 		return trigger_resolver(resolvers[Wildcard()], rest, (values..., segment))
     else
@@ -418,7 +430,7 @@ function set_bond_value_reactive(; session::ServerSession, notebook::Notebook, n
     if is_first_value && WorkspaceManager.eval_fetch_in_workspace((session, notebook), eq_tester)
         return
     end
-        
+
     function custom_deletion_hook((session, notebook)::Tuple{ServerSession,Notebook}, to_delete_vars::Set{Symbol}, funcs_to_delete::Set{Tuple{UUID,FunctionName}}, to_reimport::Set{Expr}; to_run::AbstractVector{Cell})
         to_delete_vars = Set([to_delete_vars..., bound_sym]) # also delete the bound symbol
         WorkspaceManager.delete_vars((session, notebook), to_delete_vars, funcs_to_delete, to_reimport)
@@ -451,13 +463,220 @@ responses[:write_file] = function (🙋::ClientRequest)
 
     code = get_template_code(basename(save_path), reldir, 🙋.body["file"])
 
-    msg = UpdateMessage(:write_file_reply, 
+    msg = UpdateMessage(:write_file_reply,
         Dict(
             :success => success,
             :code => code
         ), 🙋.notebook, nothing, 🙋.initiator)
 
     putclientupdates!(🙋.session, 🙋.initiator, msg)
+end
+
+# friends
+animals = [
+    "alligator",
+    "anteater",
+    "armadillo",
+    "auroch",
+    "axolotl",
+    "badger",
+    "bat",
+    "beaver",
+    "buffalo",
+    "camel",
+    "capybara",
+    "chameleon",
+    "cheetah",
+    "chinchilla",
+    "chipmunk",
+    "chupacabra",
+    "cormorant",
+    "coyote",
+    "crow",
+    "dingo",
+    "dinosaur",
+    "dolphin",
+    "duck",
+    "elephant",
+    "ferret",
+    "fox",
+    "frog",
+    "giraffe",
+    "gopher",
+    "grizzly",
+    "hedgehog",
+    "hippo",
+    "hyena",
+    "ibex",
+    "ifrit",
+    "iguana",
+    "jackal",
+    "kangaroo",
+    "koala",
+    "kraken",
+    "lemur",
+    "leopard",
+    "liger",
+    "llama",
+    "manatee",
+    "mink",
+    "monkey",
+    "moose",
+    "narwhal",
+    "orangutan",
+    "otter",
+    "panda",
+    "penguin",
+    "platypus",
+    "pumpkin",
+    "python",
+    "quagga",
+    "rabbit",
+    "raccoon",
+    "rhino",
+    "sheep",
+    "shrew",
+    "skunk",
+    "squirrel",
+    "tiger",
+    "turtle",
+    "walrus",
+    "wolf",
+    "wolverine",
+    "wombat",
+]
+
+colors = [
+    "#FF0044",
+    "#006CFE",
+    "#FFCC41",
+    "#B476FB",
+    "#FE9D24",
+    "#29B278",
+    "#00D7BF",
+    #
+    "#3F51B5",
+    "#FF4081",
+    "#03A9F4",
+"#03A9F4",
+    ]
+
+allfriends = Dict()
+
+mutable struct Friend
+    id::String
+    color::String
+    animal::String
+    status::Dict
+end
+
+function friend_to_dict(friend::Friend)
+    return Dict(
+        :id => friend.id,
+        :color => friend.color,
+        :animal => friend.animal,
+        :status => friend.status,
+    )
+end
+
+responses[:friends] = function friends(🙋::ClientRequest)
+    require_notebook(🙋)
+
+    if 🙋.body["type"] == "joined"
+        if !haskey(allfriends, 🙋.notebook.notebook_id)
+            allfriends[🙋.notebook.notebook_id] = Dict()
+        end
+
+        myfriends = allfriends[🙋.notebook.notebook_id]
+
+        friend = Friend(
+            String(🙋.initiator.client.id),
+            rand(colors),
+            splice!(
+                animals,
+                rand(1:length(animals) - 1)
+            ),
+            Dict(
+                :type => "joined",
+            )
+        )
+
+        myfriends[Symbol(🙋.initiator.client.id)] = friend
+
+        putnotebookupdates!(
+            🙋.session,
+            🙋.notebook,
+            UpdateMessage(
+                :friends,
+                Dict(:friends => Dict(
+                    Symbol(friend.id) => friend_to_dict(friend) for friend in values(myfriends)
+                )),
+            )
+        )
+    elseif 🙋.body["type"] == "left"
+        if !haskey(allfriends, 🙋.notebook.notebook_id)
+            return
+        end
+
+        myfriends = allfriends[🙋.notebook.notebook_id]
+
+        if !haskey(myfriends, Symbol(🙋.initiator.client.id))
+            return
+        end
+
+        friend = pop!(myfriends, Symbol(🙋.initiator.client.id))
+        friend.status = Dict(:type => "left")
+
+        putnotebookupdates!(
+            🙋.session,
+            🙋.notebook,
+            UpdateMessage(
+                :friends,
+                Dict(:friends => Dict(
+                    Symbol(friend.id) => friend_to_dict(friend),
+                )),
+            )
+        )
+
+        push!(animals, friend.animal)
+
+        if length(myfriends) == 0
+            delete!(allfriends, 🙋.notebook.notebook_id)
+        end
+    else
+        myfriends = allfriends[🙋.notebook.notebook_id]
+        me = myfriends[Symbol(🙋.initiator.client.id)]
+        me.status = 🙋.body
+
+        putnotebookupdates!(
+            🙋.session,
+            🙋.notebook,
+            UpdateMessage(
+                :friends,
+                Dict(:friends => Dict(
+                    Symbol(me.id) => friend_to_dict(me),
+                )),
+            )
+        )
+    end
+end
+
+responses[:trigger] = function trigger(🙋::ClientRequest)
+    require_notebook(🙋)
+
+    putnotebookfriendsupdates!(
+        🙋.initiator.client,
+        🙋.session,
+        🙋.notebook,
+        UpdateMessage(
+            :trigger,
+            Dict(
+                :source => 🙋.body["source"],
+                :handlerId => 🙋.body["handlerId"],
+                :payload => 🙋.body["payload"],
+            )
+        )
+    )
 end
 
 # helpers

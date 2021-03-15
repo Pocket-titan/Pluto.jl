@@ -47,7 +47,7 @@ responses[:completepath] = function response_completepath(🙋::ClientRequest)
     # sort on score. If a tie (e.g. both score 0.0), sort on dir/file. If a tie, sort alphabetically.
     perm = sortperm(collect(zip(.-scores, (!isdirpath).(formatted), formatted)))
 
-    msg = UpdateMessage(:completion_result, 
+    msg = UpdateMessage(:completion_result,
         Dict(
             :start => start_utf8 - 1, # 1-based index (julia) to 0-based index (js)
             :stop => stop_utf8 - 1, # idem
@@ -76,7 +76,7 @@ responses[:complete] = function response_complete(🙋::ClientRequest)
     start_utf8 = loc.start
     stop_utf8 = nextind(query, pos) # advance one unicode char, js uses exclusive upper bound
 
-    msg = UpdateMessage(:completion_result, 
+    msg = UpdateMessage(:completion_result,
         Dict(
             :start => start_utf8 - 1, # 1-based index (julia) to 0-based index (js)
             :stop => stop_utf8 - 1, # idem
@@ -104,7 +104,7 @@ responses[:docs] = function response_docs(🙋::ClientRequest)
         end
     end
 
-    msg = UpdateMessage(:doc_result, 
+    msg = UpdateMessage(:doc_result,
         Dict(
             :status => status,
             :doc => doc_html,

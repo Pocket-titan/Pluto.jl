@@ -32,6 +32,20 @@ function putnotebookupdates!(session::ServerSession, notebook::Notebook, message
     listeners
 end
 
+"Send `messages` to friends (all clients excluding initiator) connected to the `notebook`."
+function putnotebookfriendsupdates!(client::ClientSession, session::ServerSession, notebook::Notebook, messages::UpdateMessage...; flush::Bool=true)
+    listeners = filter(collect(values(session.connected_clients))) do c
+        c.id !== client.id &&
+        c.connected_notebook !== nothing &&
+        c.connected_notebook.notebook_id == notebook.notebook_id
+    end
+    for next_to_send in messages, client in listeners
+        put!(client.pendingupdates, next_to_send)
+    end
+    flush && flushallclients(session, listeners)
+    return listeners
+end
+
 "Send `messages` to all connected clients."
 function putplutoupdates!(session::ServerSession, messages::UpdateMessage...; flush::Bool=true)
     listeners = collect(values(session.connected_clients))
@@ -42,7 +56,7 @@ function putplutoupdates!(session::ServerSession, messages::UpdateMessage...; fl
     listeners
 end
 
-"Send `messages` to a `client`."
+    "Send `messages` to a `client`."
 function putclientupdates!(client::ClientSession, messages::UpdateMessage...)
     for next_to_send in messages
         put!(client.pendingupdates, next_to_send)
@@ -63,7 +77,7 @@ function flushclient(client::ClientSession)
     take!(flushtoken)
     while isready(client.pendingupdates)
         next_to_send = take!(client.pendingupdates)
-        
+
         try
             if client.stream !== nothing
                 if isopen(client.stream)
@@ -72,7 +86,7 @@ function flushclient(client::ClientSession)
                     end
                     write(client.stream, serialize_message(next_to_send))
                 else
-                    put!(flushtoken)
+                put!(flushtoken)
                     return false
                 end
             end

@@ -118,6 +118,8 @@ export const Notebook = ({
         }
     }, [is_first_load, notebook.cell_order.length])
 
+    console.log(`notebook`, notebook)
+
     return html`
         <pluto-notebook id=${notebook.notebook_id}>
             ${notebook.cell_order.map(

@@ -33,6 +33,7 @@ export const Cell = ({
     selected_cells,
     notebook_id,
 }) => {
+    console.log(`queued, running, errored`, queued, running, errored)
     let pluto_actions = useContext(PlutoContext)
     // cm_forced_focus is null, except when a line needs to be highlighted because it is part of a stack trace
     const [cm_forced_focus, set_cm_forced_focus] = useState(null)

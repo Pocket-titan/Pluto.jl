@@ -1,6 +1,6 @@
 import HTTP
-import Markdown: htmlesc
-import UUIDs: UUID
+import Markdown:htmlesc
+import UUIDs:UUID
 
 # Serve everything from `/frontend`, and create HTTP endpoints to open notebooks.
 
@@ -18,6 +18,7 @@ function asset_response(path)
     end
     try
         @assert isfile(path)
+
         response = HTTP.Response(200, read(path, String))
         push!(response.headers, "Content-Type" => string(mime_fromfilename(path)))
         push!(response.headers, "Access-Control-Allow-Origin" => "*")
@@ -40,6 +41,7 @@ end
 
 function notebook_redirect_response(notebook; home_url="./")
     response = HTTP.Response(302, "")
+    push!(response.headers, "Access-Control-Allow-Origin" => "*")
     push!(response.headers, "Location" => home_url * "edit?id=" * string(notebook.notebook_id))
     return response
 end
@@ -84,7 +86,7 @@ function http_router_for(session::ServerSession)
 
     """
         with_authentication(f::Function)
-    
+
     Returns a function `HTTP.Request → HTTP.Response` which does three things:
     1. Check whether the request is authenticated (by calling `is_authenticated`), if not, return a 403 error.
     2. Call your `f(request)` to create the response message.
@@ -98,35 +100,37 @@ function http_router_for(session::ServerSession)
                 response
             else
                 error_response(403, "Not yet authenticated", "<b>Open the link that was printed in the terminal where you launched Pluto.</b> It includes a <em>secret</em>, which is needed to access this server.<br><br>If you are running the server yourself and want to change this configuration, have a look at the keyword arguments to <em>Pluto.run</em>. <br><br>Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a> if you did not expect it!")
-            end
+    end
         end
     end
-    
+
     function create_serve_onefile(path)
         return request::HTTP.Request -> asset_response(normpath(path))
     end
-    
+
     # / does not need security.require_secret_for_open_links
     # because this is how we handle the case:
     #    require_secret_for_open_links == true
     #    require_secret_for_access == false
-    # Access to all 'risky' endpoints is still restricted to requests that have the secret cookie, but visiting `/` is allowed, and it will set the cookie. From then on the security situation is identical to 
+    # Access to all 'risky' endpoints is still restricted to requests that have the secret cookie, but visiting `/` is allowed, and it will set the cookie. From then on the security situation is identical to
     #    secret_for_access == true
     HTTP.@register(router, "GET", "/", with_authentication(
-        create_serve_onefile(project_relative_path("frontend", "index.html"));
+        # create_serve_onefile(project_relative_path("frontend", "index.html"));
+        create_serve_onefile(project_relative_path("client/build", "index.html"));
         required=security.require_secret_for_access
         ))
     HTTP.@register(router, "GET", "/edit", with_authentication(
-        create_serve_onefile(project_relative_path("frontend", "editor.html"));
-        required=security.require_secret_for_access || 
+        # create_serve_onefile(project_relative_path("frontend", "editor.html"));
+        create_serve_onefile(project_relative_path("client/build", "index.html"));
+        required=security.require_secret_for_access ||
         security.require_secret_for_open_links,
     ))
     # the /edit page also uses with_authentication, but this is not how access to notebooks is secured: this is done by requiring the WS connection to be authenticated.
     # we still use it for /edit to do the cookie stuff, and show a more helpful error, instead of the WS never connecting.
-    
+
     HTTP.@register(router, "GET", "/ping", r -> HTTP.Response(200, "OK!"))
-    HTTP.@register(router, "GET", "/possible_binder_token_please", r -> session.binder_token === nothing ? HTTP.Response(404,"") : HTTP.Response(200, session.binder_token))
-    
+    HTTP.@register(router, "GET", "/possible_binder_token_please", r -> session.binder_token === nothing ? HTTP.Response(404, "") : HTTP.Response(200, session.binder_token))
+
     function try_launch_notebook_response(action::Function, path_or_url::AbstractString; title="", advice="", home_url="./", action_kwargs...)
         try
             nb = action(session, path_or_url; action_kwargs...)
@@ -141,7 +145,7 @@ function http_router_for(session::ServerSession)
     end
 
     serve_newfile = with_authentication(;
-        required=security.require_secret_for_access || 
+        required=security.require_secret_for_access ||
         security.require_secret_for_open_links
     ) do request::HTTP.Request
         notebook_redirect_response(SessionActions.new(session))
@@ -149,7 +153,7 @@ function http_router_for(session::ServerSession)
     HTTP.@register(router, "GET", "/new", serve_newfile)
 
     serve_openfile = with_authentication(;
-        required=security.require_secret_for_access || 
+        required=security.require_secret_for_access ||
         security.require_secret_for_open_links
     ) do request::HTTP.Request
         try
@@ -175,25 +179,25 @@ function http_router_for(session::ServerSession)
     end
 
     HTTP.@register(router, "GET", "/open", serve_openfile)
-    
+
     serve_sample = with_authentication(;
-        required=security.require_secret_for_access || 
+        required=security.require_secret_for_access ||
         security.require_secret_for_open_links
     ) do request::HTTP.Request
         uri = HTTP.URI(request.target)
         sample_filename = split(HTTP.unescapeuri(uri.path), "sample/")[2]
         sample_path = project_relative_path("sample", sample_filename)
-        
+
         try_launch_notebook_response(SessionActions.open, sample_path, home_url="../", title="Failed to load sample", advice="Please <a href='https://github.com/fonsp/Pluto.jl/issues'>report this error</a>!", as_sample=true)
     end
     HTTP.@register(router, "GET", "/sample/*", serve_sample)
 
-    serve_notebookfile = with_authentication(; 
-        required=security.require_secret_for_access || 
+    serve_notebookfile = with_authentication(;
+        required=security.require_secret_for_access ||
         security.require_secret_for_open_links
     ) do request::HTTP.Request
         try
-            uri = HTTP.URI(request.target)        
+            uri = HTTP.URI(request.target)
             query = HTTP.queryparams(uri)
             id = UUID(query["id"])
             notebook = session.notebooks[id]
@@ -207,15 +211,17 @@ function http_router_for(session::ServerSession)
         end
     end
     HTTP.@register(router, "GET", "/notebookfile", serve_notebookfile)
-    
+
     function serve_asset(request::HTTP.Request)
         uri = HTTP.URI(request.target)
-        
-        filepath = project_relative_path("frontend", relpath(HTTP.unescapeuri(uri.path), "/"))
+
+        # filepath = project_relative_path("frontend", relpath(HTTP.unescapeuri(uri.path), "/"))
+        filepath = project_relative_path("client/build", relpath(HTTP.unescapeuri(uri.path), "/"))
         asset_response(filepath)
     end
     HTTP.@register(router, "GET", "/*", serve_asset)
-    HTTP.@register(router, "GET", "/favicon.ico", create_serve_onefile(project_relative_path("frontend", "img", "favicon.ico")))
+    # HTTP.@register(router, "GET", "/favicon.ico", create_serve_onefile(project_relative_path("frontend", "img", "favicon.ico")))
+    HTTP.@register(router, "GET", "/favicon.ico", create_serve_onefile(project_relative_path("client/build", "img", "favicon.ico")))
 
     return router
 end

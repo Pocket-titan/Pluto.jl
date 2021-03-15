@@ -107,6 +107,9 @@ const create_ws_connection = (address, { on_message, on_socket_close }, timeout_
         }, timeout_ms)
 
         const send_encoded = (message) => {
+            if (message.type !== "ping") {
+                console.log("🦕 Sending message: ", message)
+            }
             const encoded = pack(message)
             socket.send(encoded)
         }
@@ -122,6 +125,10 @@ const create_ws_connection = (address, { on_message, on_socket_close }, timeout_
                 try {
                     const buffer = await event.data.arrayBuffer()
                     const message = unpack(new Uint8Array(buffer))
+
+                    if (message.type !== "pong") {
+                        console.log("🦕 Received message: ", message)
+                    }
 
                     try {
                         on_message(message)
